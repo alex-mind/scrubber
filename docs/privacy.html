@@ -51,9 +51,10 @@
   <p class="dateline">Last updated 13 September 2026</p>
 
   <p class="lead">
-    Scrubber collects nothing, has no server, and sends nothing anywhere except
+    The extension collects nothing, has no server, and sends nothing anywhere except
     YouTube — and to YouTube only what you deliberately typed and pressed send on. The
-    rest of this page is that statement made specific enough to check.
+    rest of this page is that statement made specific enough to check. (This website
+    counts visits; that is covered further down, and it is the only exception.)
   </p>
 
   <h2>What is collected</h2>
@@ -132,6 +133,19 @@
     requests no host permissions.
   </p>
 
+  <h2>This website</h2>
+  <p>
+    Everything above is about the extension, which collects nothing. This website —
+    the page you are reading — is a separate thing, and it does count visits, using
+    Cloudflare Web Analytics.
+  </p>
+  <p>
+    It sets no cookies, stores no identifier, and cannot follow you to any other site.
+    It records that a page was loaded, the referring site, and coarse details like
+    country and browser. None of it is tied to you, and none of it reaches the
+    extension, which never talks to this site at all.
+  </p>
+
   <h2>Children</h2>
   <p>
     Scrubber is not directed at children and collects no data from anyone, including
@@ -168,5 +182,9 @@
   MIT licensed
 </footer>
 </div>
+<!-- Cloudflare Web Analytics. Cookieless page counts; the token is a public
+     beacon id, not a secret. Declared in privacy.html. -->
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js"
+        data-cf-beacon='{"token": "a1f38db9efef4c48871a60af5b34ad9a"}'></script>
 </body>
 </html>

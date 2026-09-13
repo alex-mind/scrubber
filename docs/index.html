@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Scrubber — YouTube comments pinned to the moment they're about</title>
-<meta name="description" content="Scrubber reads the timestamps people type into YouTube comments and draws them as density marks over the progress bar. Free, open source, no tracking.">
+<meta name="description" content="Scrubber reads the timestamps people type into YouTube comments and draws them as density marks over the progress bar. Free, open source, and it tracks nothing about you.">
 <link rel="icon" href="icon.png">
 <meta property="og:title" content="Scrubber">
 <meta property="og:description" content="YouTube comments pinned to the moment they're about.">
@@ -467,5 +467,9 @@
   }
 })();
 </script>
+<!-- Cloudflare Web Analytics. Cookieless page counts; the token is a public
+     beacon id, not a secret. Declared in privacy.html. -->
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js"
+        data-cf-beacon='{"token": "a1f38db9efef4c48871a60af5b34ad9a"}'></script>
 </body>
 </html>
