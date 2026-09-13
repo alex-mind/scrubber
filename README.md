@@ -1,16 +1,31 @@
 # Scrubber
 
-# 🛑 SLOP 🛑
+<img src="art/slop-sign.png" width="118" align="left" hspace="18" vspace="4" alt="SLOP">
+
+### SLOP
+
+**This is a vibe-coded slop project.** Want something fixed? Spin up your Claude Code
+and raise a PR — that is genuinely the intended contribution path, not a joke at your
+expense.
+
+<br clear="left">
 
 [![VIBE CODED](https://img.shields.io/badge/VIBE-CODED-ff6f9c?style=for-the-badge&labelColor=17181c)](https://github.com/alex-mind/scrubber)
-[![MV3](https://img.shields.io/badge/manifest-v3-d61f58?style=for-the-badge&labelColor=17181c)](manifest.json)
-[![no telemetry](https://img.shields.io/badge/telemetry-none-3a3c44?style=for-the-badge&labelColor=17181c)](https://alex-mind.github.io/scrubber/privacy.html)
 
 Comments pinned to the moment they're about.
 
 YouTube viewers have been hand-typing timestamps into comments for over a decade,
 and YouTube auto-links them. Scrubber reads those timestamps off the page, draws
 them as density marks over the progress bar, and surfaces good ones as you watch.
+
+![Scrubber on a video: density marks across the progress bar, and the comments about
+the moment under the cursor](store/screenshots/01-hover-window.png)
+
+*Hovering the bar at 3:09. The marks are other people's timestamps; the panel is what
+they said about that moment.*
+
+**[alex-mind.github.io/scrubber](https://alex-mind.github.io/scrubber/)** — install page
+and a live demo you can scrub without installing anything.
 
 Talks to YouTube **exactly the way the page itself does** — same origin, same session
 already in your browser, no third party and no server of ours. Reads comments that way,
@@ -22,15 +37,31 @@ your own settings.
 | Desktop YouTube | yes | yes | — |
 | Mobile web YouTube | — | — | yes |
 
-## Install — Chrome
+## Install — Chrome, Edge, Brave, Arc, Opera
 
-1. `chrome://extensions` → enable **Developer mode**
-2. **Load unpacked** → pick this folder
-3. Open a video — comments are fetched automatically
+The store listing is in review. Until it lands, install the built zip from
+[the latest release](https://github.com/alex-mind/scrubber/releases/latest), or from a
+checkout:
 
-`./build.sh chrome` produces `dist/scrubber-chrome.zip` for upload.
+1. `./build.sh chrome` — stages the extension into `build/extension/` and writes
+   `dist/scrubber-<version>.zip`
+2. `chrome://extensions` → enable **Developer mode**
+3. **Load unpacked** → pick **`build/extension`**, not the repo root — the root also
+   holds `docs/`, `store/`, `art/` and the build script, none of which belong in an
+   extension
+4. Open a video — comments are fetched automatically
+
+The same zip is what both the Chrome Web Store and Edge Add-ons take; there is no
+separate Edge build. Posting a comment, replying and liking need you to be signed
+into YouTube; reading works signed out.
 
 ## Install — Safari
+
+Safari is build-it-yourself and will stay that way for now: shipping a Safari extension
+means a **$99/yr Apple Developer Program** membership, and every release has to be
+wrapped in a native app and pushed through App Store review. That is a lot of recurring
+cost and ceremony for the smaller of the two audiences, so Chrome and Edge go first.
+Building it locally costs nothing.
 
 Safari has no "load unpacked". Every extension ships inside a native app, so the
 source is converted into an Xcode project. Needs macOS with Xcode (not just the
@@ -60,7 +91,8 @@ extension list and will not show a build it rejected earlier in the session.
 `./build.sh safari` stops after generating the project if you'd rather open
 `../scrubber-safari/Scrubber/Scrubber.xcodeproj` and hit Run yourself.
 
-### If the extension disappears from Safari
+<details>
+<summary><b>If the extension disappears from Safari</b></summary>
 
 The usual cause is not signing, and not Safari's cache. `xcodebuild` registers the
 appex **it just built** — the one under `build/DerivedData` — with `pluginkit`. Copying
@@ -87,7 +119,10 @@ Then **fully quit Safari and reopen it** — it reads the extension list once pe
 Do not run `lsregister -f` on the app to try to fix this; it clears the registration
 rather than refreshing it.
 
-### What the converter gets wrong
+</details>
+
+<details>
+<summary><b>What the converter gets wrong</b></summary>
 
 `safari-web-extension-converter` exits 0 and prints no warning in both of these
 cases. `build.sh` repairs them after every conversion; worth knowing about because
@@ -120,7 +155,10 @@ bundle identifier.
 to keep — `Scrubber/ViewController.swift` hardcodes
 `dev.myndar.scrubber.Extension`.
 
-### Signing
+</details>
+
+<details>
+<summary><b>Signing</b></summary>
 
 **Safari silently hides extensions it considers unsigned.** Not greyed out, not an
 error — the extension is simply absent from Settings → Extensions, which is
@@ -158,7 +196,10 @@ A free personal team's certificate expires every 7 days — when Safari drops th
 extension, re-run `./build.sh safari-app`. A paid account ($99/year) does not
 expire.
 
-### If xcrun can't find the converter
+</details>
+
+<details>
+<summary><b>If xcrun can't find the converter</b></summary>
 
 ```
 xcrun: error: unable to find utility "safari-web-extension-converter"
@@ -179,7 +220,10 @@ sudo xcodebuild -license accept
 xcrun --find safari-web-extension-converter   # should print a path
 ```
 
-### If the converter fails loading a plug-in
+</details>
+
+<details>
+<summary><b>If the converter fails loading a plug-in</b></summary>
 
 ```
 A required plugin failed to load ... IDESimulatorFoundation
@@ -207,6 +251,8 @@ the iOS scheme on a simulator or a device, then enable the extension in
 App Store, which means an Apple Developer account at $99/year plus review. Chrome's
 is a one-off $5. Worth knowing before you spend a weekend on the Safari build.
 
+</details>
+
 ## Layout
 
 ```
@@ -217,7 +263,18 @@ src/innertube.js    YouTube's own comment endpoint; parses both comment shapes
 src/content.js      parsing, density, pop-out — platform-agnostic
 src/content.css     liquid-glass material + mobile overrides
 src/popup.html/js   settings
-build.sh            chrome zip; Safari convert/repair/build/install
+build.sh            store zip; Safari convert/repair/build/install
+docs/               the install site, served by GitHub Pages from this folder
+store/              listing copy, permission answers, icon/promo/screenshots
+art/                HTML sources for the generated images — edit these, not the PNGs
+```
+
+Every image in `store/` and the SLOP sign are rendered from `art/*.html` with headless
+Chrome, so there is no binary to hand-edit and no image tooling to install:
+
+```sh
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless \
+  --screenshot=out.png --window-size=440,280 file://$PWD/art/promo-440x280.html
 ```
 
 `compat.js` picks `browser` if present (Safari, Firefox) and `chrome` otherwise, then
@@ -239,6 +296,10 @@ added almost nothing. Tutorials are roughly 3x denser than podcasts, which is wh
 they're the beachhead.
 
 ## Design notes
+
+Everything below is for whoever maintains this — it is the reasoning behind decisions
+that look arbitrary in the code, written down so they don't get "fixed" back into bugs.
+If you only want to use the extension, you are already done; stop here.
 
 - **Ads reuse the same `<video>` element.** Reading `duration` during a pre-roll gives
   the ad's duration and silently discards every mark. `contentDuration()` returns 0
@@ -660,10 +721,18 @@ they're the beachhead.
   `POPOUT_LAG` holds it until the moment has actually played — 2.5s, which is long
   enough to have seen what the comment is about and short enough to still feel attached
   to it. It is one constant; a comment stamped 2:37 lands at 2:39.5.
-- **Comments with no timecode fill the gaps.** They used to queue up in the last fifteen
-  seconds. Now they take the centres of stretches the timed ones leave empty — which on
-  a video whose timestamps all cluster in one place is most of it, and on a
-  well-covered one is none at all.
+- **Comments with no timecode do two jobs, and the end of the video is one of them.**
+  They used to queue up in the last fifteen seconds; then they were spread across the
+  quiet stretches instead, which lost what the end was good for — the comments anyone who
+  scrolled down would have read first. Both now. The leaders play out over the closing
+  stretch in the order the comments page would list them, and whatever is left fills the
+  empty parts earlier on. How many lead depends on the video: a comment within a quarter
+  of the top one's likes is in the same league and earns a place, between five and ten of
+  them, and never more than half of what there is — a video with four of these should not
+  spend all four in its last minute. None of them lands on a moment a timed comment has
+  already spoken for, and the run stops about seven per cent short of the end rather than
+  playing over the outro: proportional, so a long video gets a proportional run-out
+  instead of the same few seconds a short one has.
 - **A paused video pauses everything on top of it.** Cards can be frozen for more than
   one reason at once — you are reading one, and the video is stopped — so a card keeps a
   set of holds and only resumes when the last one lifts.

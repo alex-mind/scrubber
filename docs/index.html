@@ -113,13 +113,23 @@
   .priv li{margin:8px 0}
   .priv li b{color:var(--fg); font-weight:500}
 
-  details{border-top:1px solid var(--line); padding-top:20px; margin-top:34px}
-  summary{cursor:pointer; font-weight:500; font-size:15px; list-style:none}
+  /* Sits directly under the install button now, so it has to stay quiet until
+     opened — a secondary affordance, not a second call to action. */
+  details.manual{margin-top:18px; max-width:620px}
+  summary{cursor:pointer; font-size:13.5px; color:var(--dim); list-style:none;
+          display:inline-flex; align-items:center; gap:5px; padding:3px 0}
+  summary:hover{color:var(--accent)}
   summary::-webkit-details-marker{display:none}
-  summary::before{content:"▸ "; color:var(--dim)}
-  details[open] summary::before{content:"▾ "}
-  details ol{color:var(--dim); font-size:14.5px; padding-left:22px}
-  details li{margin:9px 0}
+  summary::before{content:"▸"; font-size:10px; line-height:1}
+  details[open] summary::before{content:"▾"}
+  details[open].manual{
+    margin-bottom:6px; padding:4px 18px 16px;
+    border-left:2px solid var(--line);
+  }
+  details h4{margin:16px 0 6px; font-size:13.5px; font-weight:600; letter-spacing:-.01em}
+  details ol{color:var(--dim); font-size:14px; padding-left:20px; margin:0}
+  details li{margin:7px 0}
+  details .fine{font-size:13px; color:var(--dim); margin:10px 0 0; line-height:1.5}
   code{background:var(--field); border:1px solid var(--line); border-radius:5px;
        padding:1.5px 6px; font:500 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace}
 
@@ -173,6 +183,49 @@
     </a>
     <small id="install-note">Free and open source. Works on desktop YouTube.</small>
   </div>
+
+  <details class="manual">
+    <summary>Rather install it by hand?</summary>
+
+    <h4>Chrome, Edge, Brave, Arc, Opera</h4>
+    <ol>
+      <li>Download the zip from
+          <a href="https://github.com/alex-mind/scrubber/releases/latest">the latest release</a>
+          and unzip it.</li>
+      <li>Open <code>chrome://extensions</code> — or <code>edge://extensions</code>,
+          <code>brave://extensions</code>.</li>
+      <li>Turn on <b>Developer mode</b>, top right.</li>
+      <li>Click <b>Load unpacked</b> and pick the unzipped folder.</li>
+      <li>Open any YouTube video. Marks appear once the comments load.</li>
+    </ol>
+    <p class="fine">
+      Hand-loaded extensions don't auto-update, and Chrome re-asks about developer
+      mode on every launch. The store version is the quiet one.
+    </p>
+
+    <h4>Safari</h4>
+    <p class="fine" style="margin-bottom:10px">
+      Safari has no "load unpacked" — every extension ships inside a native app, so
+      this one has to be built. You need macOS with <b>Xcode</b> installed, not just
+      the command line tools.
+    </p>
+    <ol>
+      <li>Clone the repo:
+          <code>git clone https://github.com/alex-mind/scrubber</code></li>
+      <li>Run <code>./build.sh safari-app</code> — it converts the extension to an
+          Xcode project, builds it, and installs <code>Scrubber.app</code> to
+          <code>/Applications</code>.</li>
+      <li>Open Safari → <b>Settings → Extensions</b> and tick <b>Scrubber</b>.</li>
+      <li>Set youtube.com to <b>Allow on Every Website</b>, or at least <b>Always
+          Allow on This Website</b> — without this the extension never runs.</li>
+    </ol>
+    <p class="fine">
+      If it doesn't appear in the list, quit Safari completely and reopen it — Safari
+      reads its extension list once per launch. Without a paid Apple developer
+      account the build is unsigned, and Safari then needs <b>Develop → Allow
+      unsigned extensions</b> ticked again after every restart.
+    </p>
+  </details>
 </header>
 
 <div class="demo">
@@ -255,26 +308,9 @@
     <tr><th>Browser</th><th>Status</th></tr>
     <tr><td>Chrome, Brave, Arc, Opera</td><td class="yes">Supported</td></tr>
     <tr><td>Edge</td><td class="yes">Supported</td></tr>
-    <tr><td>Safari</td><td>Works, but needs an Apple developer account to ship — not yet</td></tr>
+    <tr><td>Safari</td><td>Works, but shipping it needs a $99/yr Apple developer account</td></tr>
     <tr><td>Firefox</td><td>Not yet</td></tr>
   </table>
-
-  <details>
-    <summary>Install it manually instead</summary>
-    <ol>
-      <li>Download the zip from
-          <a href="https://github.com/alex-mind/scrubber/releases/latest">the latest release</a>
-          and unzip it.</li>
-      <li>Open <code>chrome://extensions</code> (or <code>edge://extensions</code>).</li>
-      <li>Turn on <b>Developer mode</b>, top right.</li>
-      <li>Click <b>Load unpacked</b> and pick the unzipped folder.</li>
-      <li>Open any YouTube video. Marks appear once the comments load.</li>
-    </ol>
-    <p style="font-size:14px; color:var(--dim); margin:0">
-      Manually loaded extensions don't auto-update, and Chrome will nag you about
-      developer mode on every launch. The store version is the quiet one.
-    </p>
-  </details>
 </section>
 
 <footer>
@@ -334,7 +370,7 @@
     note.innerHTML = 'Store listing is in review — for now it installs from the zip in '
                    + '<a href="#" onclick="document.querySelector(\'details\').open=true;'
                    + 'document.querySelector(\'details\').scrollIntoView({behavior:\'smooth\'});'
-                   + 'return false;">four steps</a>.';
+                   + 'return false;">a few steps</a>.';
   }
 
   /* ---------------------------------------------------------------------

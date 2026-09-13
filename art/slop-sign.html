@@ -1,0 +1,32 @@
+<!doctype html><meta charset="utf-8">
+<style>
+  /* A road-sign octagon, STOP-sign proportions, reading SLOP. Rendered rather
+     than drawn so the wording and colour stay editable — see build notes in
+     README. Transparent ground so it sits on light and dark GitHub themes. */
+  html,body{margin:0;background:transparent}
+  body{width:400px;height:400px;display:grid;place-items:center}
+  /* Three layers: red field, a white stripe inset from the edge, red again on
+     top. A stop sign's white border sits inside the octagon, not on its rim —
+     one flat rim just disappears at README size. */
+  .oct{
+    position:absolute;
+    clip-path:polygon(29.29% 0%, 70.71% 0%, 100% 29.29%, 100% 70.71%,
+                      70.71% 100%, 29.29% 100%, 0% 70.71%, 0% 29.29%);
+  }
+  .sign{width:360px;height:360px;position:relative}
+  .field{inset:0;background:linear-gradient(#d0202f,#a30f1d)}
+  .stripe{inset:16px;background:#fff}
+  .face{inset:26px;background:linear-gradient(#d0202f,#a30f1d);
+        display:grid;place-items:center}
+  .face span{
+    color:#fff;
+    font:700 92px/1 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    letter-spacing:.02em;
+    text-shadow:0 2px 3px rgba(0,0,0,.30);
+  }
+</style>
+<div class="sign">
+  <div class="oct field"></div>
+  <div class="oct stripe"></div>
+  <div class="oct face"><span>SLOP</span></div>
+</div>
