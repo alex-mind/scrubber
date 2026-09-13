@@ -1,0 +1,1065 @@
+/* Scrubber overlays.
+ *
+ * Three things are measured off the live player, and every surface here is made
+ * of them:
+ *   --scrubber-accent         YouTube's red, off their own progress swatch
+ *   --scrubber-chrome         the material of their label pill — the one the
+ *                             chapter title and the time sit in over the scrub
+ *                             preview — at their alpha, not ours
+ *   --scrubber-chrome-radius  that pill's corner
+ * The pill is flat: no blur, no gradient, no hairline, no shadow. Ours were all
+ * three, which is why it never read as the same object however close the colour
+ * got. So they are gone, and what is left is their rectangle with our content
+ * in it.
+ */
+:root, .html5-video-player {
+  --sc: var(--scrubber-accent, #f03);
+  --sc-text: var(--scrubber-chrome-fg, rgba(255, 255, 255, .94));
+  --sc-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Roboto, Arial, sans-serif;
+  --sc-ease: cubic-bezier(.05, 0, 0, 1);
+
+  /* The panel material, and nothing else: one flat translucent fill. */
+  --sc-tint: var(--scrubber-chrome, rgba(28, 28, 28, .6));
+  --sc-radius: var(--scrubber-chrome-radius, 12px);
+  --sc-blur: none;
+  --sc-sheen: none;
+  --sc-shadow: none;
+
+  /* A chip inside a panel of the same material needs to separate from it, so it
+     is a step further in the direction the material already goes. */
+  --sc-chip: var(--scrubber-chip, rgba(255, 255, 255, .17));
+  /* The lighter shade a mark fills with as its moment comes up. */
+  --sc-fill: color-mix(in srgb, var(--scrubber-accent, #f03) 42%, white);
+  /* Comments that named no moment are not about anything on the bar, so they are
+     not drawn in the colour that means "something happens here". Grey reads on
+     both a light page and a dark one, which the accent's opposite would not. */
+  --sc-grey: #9aa0a6;
+}
+
+/* ---- Scrubber: density marks over the YouTube progress bar ---- */
+
+.scrubber-density {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 36px;
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  pointer-events: none;
+  z-index: 30;
+  opacity: 1;
+  transition: opacity .15s ease;
+}
+.ytp-autohide .scrubber-density { opacity: 0; }
+
+.scrubber-density > i {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  background: var(--sc);
+  border-radius: 1px 1px 0 0;
+  opacity: .55;
+  min-height: 0;
+  box-shadow: 0 0 6px color-mix(in srgb, var(--sc) 45%, transparent);
+  transform-origin: bottom center;
+  transition: transform .12s ease, opacity .12s ease;
+}
+.scrubber-density > i.hot { opacity: .92; }
+.scrubber-density > i.is-lit { transform: scaleY(1.3); opacity: 1; }
+/* A comment of its own landing on screen gives the mark a beat. */
+.scrubber-density > i.is-pop { animation: sc-pop .42s var(--sc-ease); }
+@keyframes sc-pop {
+  0% { transform: scaleY(1); }
+  28% { transform: scaleY(1.38); }
+  100% { transform: scaleY(1); }
+}
+
+/* A mark fills with a lighter shade of its own colour over the run-up to its
+   comments, is full as they appear, and drains away when the last one goes —
+   so the bar is the thing that announces the card. */
+.scrubber-density > i::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(var(--f, 0) * 100%);
+  background: var(--sc-fill);
+  border-radius: inherit;
+  transition: height .16s linear;
+}
+.scrubber-density > i.is-filling { opacity: .95; }
+/* Filling tracks the playhead; draining is just an ending, so it takes longer. */
+.scrubber-density > i:not(.is-filling)::after { transition: height .55s ease; }
+
+/* A comment that named no moment still gets a slot, drawn quieter than the
+   marks that are actually about something in the picture. */
+.scrubber-density > i.is-untimed {
+  background: var(--sc-grey);
+  box-shadow: none;
+  opacity: .5;
+}
+.scrubber-density > i.is-untimed::after { background: color-mix(in srgb, var(--sc-grey) 35%, white); }
+.scrubber-density > i.is-untimed.is-filling { opacity: .95; }
+.scrubber-density.in-chart > i.is-untimed { opacity: .45; }
+
+/* Hosted by YouTube's own chart: inherit its box, its visibility and its
+   show/hide animation, and sit beneath its curve. */
+.scrubber-density.in-chart {
+  position: absolute;
+  inset: 0;
+  height: auto;
+  z-index: auto;
+}
+.scrubber-density.in-chart > i { opacity: .5; box-shadow: none; }
+.scrubber-density.in-chart > i.hot { opacity: .82; }
+.scrubber-density.in-chart > i.is-lit { opacity: .95; }
+
+/* Marks grow in as they arrive, staggered along the bar. */
+.scrubber-density.is-fresh > i { animation: scrubber-grow .42s var(--sc-ease) backwards; }
+@keyframes scrubber-grow { from { transform: scaleY(0); } }
+
+/* The stretch of video a hover gathers comments from, drawn as a measuring
+   bracket: the element IS the baseline, with a cap rising at each end. Nothing
+   sits below its own box — hanging it under the box got it clipped away by
+   YouTube's chart container, leaving only the ears. */
+.scrubber-window {
+  position: absolute;
+  bottom: 2px;
+  height: 2px;
+  background: var(--sc);
+  border-radius: 1px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .55));
+  opacity: 0;
+  transition: opacity .12s ease;
+  pointer-events: none;
+}
+.scrubber-window::before,
+.scrubber-window::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  width: 2px;
+  height: 7px;
+  border-radius: 1px;
+  background: var(--sc);
+}
+.scrubber-window::before { left: 0; }
+.scrubber-window::after { right: 0; }
+.scrubber-window.on { opacity: 1; }
+
+/* Past three cards the rest wait behind this, above the stack. */
+.scrubber-more {
+  align-self: flex-start;
+  padding: 4px 11px;
+  border: 0;
+  border-radius: 999px;
+  background-color: var(--sc-tint);
+  background-image: var(--sc-sheen);
+  -webkit-backdrop-filter: var(--sc-blur);
+  backdrop-filter: var(--sc-blur);
+  box-shadow: var(--sc-shadow);
+  color: #fff;
+  font: 590 11px/1.4 var(--sc-font);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.scrubber-more:hover { color: #fff; background-color: rgba(40, 40, 44, .3); }
+
+/* One switch for the whole stack, at the top of it next to the counter. */
+.scrubber-snooze {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background-color: var(--sc-tint);
+  background-image: var(--sc-sheen);
+  -webkit-backdrop-filter: var(--sc-blur);
+  backdrop-filter: var(--sc-blur);
+  box-shadow: var(--sc-shadow);
+  color: rgba(255, 255, 255, .82);
+  cursor: pointer;
+  pointer-events: auto;
+  transition: color .12s ease, background-color .12s ease;
+}
+.scrubber-snooze svg { width: 14px; height: 14px; display: block; }
+.scrubber-snooze:hover { color: #fff; background-color: rgba(40, 40, 44, .34); }
+
+/* Its two choices, in the same material as everything else. */
+.sc-menu {
+  align-self: flex-start;
+  display: flex;
+  flex-direction: column;
+  min-width: 190px;
+  padding: 5px;
+  border-radius: var(--sc-radius);
+  background-color: var(--sc-tint);
+  background-image: var(--sc-sheen);
+  -webkit-backdrop-filter: var(--sc-blur);
+  backdrop-filter: var(--sc-blur);
+  box-shadow: var(--sc-shadow);
+  pointer-events: auto;
+  animation: sc-rows-in .11s ease both;
+}
+.sc-mnote {
+  padding: 5px 9px 3px;
+  color: rgba(255, 255, 255, .62);
+  font: 500 10.5px/1.4 var(--sc-font);
+}
+.sc-mi {
+  padding: 7px 9px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #fff;
+  font: 500 12px/1.35 var(--sc-font);
+  text-align: left;
+  cursor: pointer;
+}
+.sc-mi:hover { background: rgba(255, 255, 255, .16); }
+
+/* The same switch inside YouTube's own settings menu, in their markup: only the
+   sub-label is ours, everything else is theirs. */
+.scrubber-menuitem-note {
+  display: block;
+  opacity: .7;
+  font-size: 11px;
+  line-height: 1.3;
+}
+.scrubber-menuitem-note:empty { display: none; }
+
+/* A card opened in place shows the conversation under the comment. */
+.scrubber-popout .sp-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0 2px;
+  padding-left: 10px;
+  border-left: 2px solid rgba(255, 255, 255, .18);
+  /* A card cannot grow to 26 replies, so past a few screenfuls the thread
+     scrolls inside it — with a visible bar, because a surface that scrolls
+     without saying so is a surface people never scroll. */
+  max-height: min(46vh, 340px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, .38) transparent;
+}
+.scrubber-popout .sp-thread::-webkit-scrollbar { width: 7px; }
+.scrubber-popout .sp-thread::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, .34);
+  border-radius: 4px;
+}
+.scrubber-popout .sp-thread::-webkit-scrollbar-track { background: transparent; }
+.scrubber-popout .sp-treply { display: flex; flex-direction: column; gap: 2px; }
+.scrubber-popout .sp-tc {
+  font-size: 12.5px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.scrubber-popout .sp-tnote {
+  color: rgba(255, 255, 255, .6);
+  font-size: 11px;
+}
+.scrubber-popout .sp-thread .st-ra {
+  max-width: 70%;
+  padding: 1px 6px;
+  border-radius: 7px;
+  background: var(--sc-chip);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10.5px;
+  color: var(--sc-text);
+  text-shadow: none;
+}
+.scrubber-popout .sp-thread .st-head { display: flex; align-items: center; gap: 7px; }
+
+/* The rest of a long thread, on the card as in the panel. */
+.scrubber-popout .sp-more {
+  align-self: flex-start;
+  margin-top: 2px;
+  padding: 4px 11px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--sc-chip);
+  color: var(--sc-text);
+  font: 590 10.5px/1.4 var(--sc-font);
+  text-shadow: none;
+  cursor: pointer;
+}
+.scrubber-popout .sp-more:hover { background: rgba(255, 255, 255, .24); }
+.scrubber-popout .sp-more::after { content: ' \203A'; }
+
+/* The one surface that genuinely is a list, so the one that scrolls. */
+.scrubber-overflow {
+  max-height: 40vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 11px 13px;
+  border-radius: var(--sc-radius);
+  background-color: var(--sc-tint);
+  background-image: var(--sc-sheen);
+  -webkit-backdrop-filter: var(--sc-blur);
+  backdrop-filter: var(--sc-blur);
+  box-shadow: var(--sc-shadow);
+  color: #fff;
+  font: 400 12.5px/1.42 var(--sc-font);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, .3) transparent;
+  pointer-events: auto;
+}
+.scrubber-overflow::-webkit-scrollbar { width: 6px; }
+.scrubber-overflow::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, .28);
+  border-radius: 3px;
+}
+.scrubber-overflow .so-row { display: flex; gap: 8px; align-items: flex-start; }
+.scrubber-overflow .so-t {
+  flex: none;
+  font: 590 12px/1.5 var(--sc-font);
+  font-variant-numeric: tabular-nums;
+  color: var(--sc-text);
+  text-shadow: none;
+}
+.scrubber-overflow .so-c {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Chart folded away on a comment-heavy video: one tag rather than nothing. */
+.scrubber-tag {
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  margin-bottom: 7px;
+  padding: 3px 8px 3px 12px;
+  transform: rotate(-6deg);
+  transform-origin: right bottom;
+  border-radius: 3px;
+  background: var(--sc);
+  color: #fff;
+  font: 600 11px/1.35 Roboto, Arial, sans-serif;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .45);
+  pointer-events: none;
+}
+.scrubber-tag::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 50%;
+  width: 3px;
+  height: 3px;
+  margin-top: -2px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, .4);
+}
+
+/* ---- hover tooltip: a glass panel beside YouTube's scrub preview ----
+   Size, position and corner radius are set from the preview's own box in JS;
+   what's here is everything that doesn't depend on measuring it. */
+.scrubber-tip {
+  position: absolute;
+  z-index: 62;
+  box-sizing: border-box;
+  display: none;
+  flex-direction: column;
+  gap: 7px;
+  /* Wide enough that the hover selection, which bleeds past the rows, still has
+     a margin of its own against the panel's edge. */
+  padding: 14px 16px;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--sc-radius);
+  background-color: var(--sc-tint);
+  background-image: var(--sc-sheen);
+  -webkit-backdrop-filter: var(--sc-blur);
+  backdrop-filter: var(--sc-blur);
+  box-shadow: var(--sc-shadow);
+  color: #fff;
+  font: 400 12.5px/1.42 var(--sc-font);
+  letter-spacing: -.005em;
+  /* Clipped comments are clickable, so the panel has to take the pointer. */
+  pointer-events: auto;
+}
+.scrubber-tip.on { display: flex; }
+
+.scrubber-tip .st-rows {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  overflow: hidden;
+  /* Room for the hover highlight, which bleeds a few pixels past the rows and
+     was being sliced off at the edges. Taken back in the margin so the panel's
+     own spacing is unchanged. */
+  padding: 3px 0;
+  margin: -3px 0;
+}
+/* Scrubbing swaps this list constantly, so it dissolves instead of snapping:
+   the outgoing copy sits on top of the incoming one for 110ms and fades. */
+.scrubber-tip .st-rows.is-in { animation: sc-rows-in .11s ease both; }
+.scrubber-tip .st-rows.is-out {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 14px;
+  pointer-events: none;
+  animation: sc-rows-out .11s ease forwards;
+}
+@keyframes sc-rows-in { from { opacity: 0; transform: translateY(3px); } }
+@keyframes sc-rows-out { to { opacity: 0; transform: translateY(-3px); } }
+.scrubber-tip .st-row { display: flex; flex-direction: column; gap: 2px; }
+/* Who said it and when, on one line of its own — so every comment below starts
+   at the same place however long the name is. */
+.scrubber-tip .st-head,
+.scrubber-popout .sp-meta,
+.scrubber-tip .st-ohead { display: flex; align-items: center; gap: 7px; }
+.scrubber-tip .st-head { min-height: 16px; }
+.scrubber-tip .st-who {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(255, 255, 255, .72);
+  font-size: 11px;
+}
+/* Not a moment, so not a time: the same badge the card wears. */
+.scrubber-tip .st-t.is-top,
+.scrubber-overflow .so-t.is-top {
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--sc-chip);
+  font: 590 9.5px/1.15 var(--sc-font);
+  letter-spacing: .07em;
+  color: rgba(255, 255, 255, .9);
+}
+
+/* Exactly what their pill puts in this position: the time, then the label, in
+   white, with no box of its own around it. */
+.scrubber-tip .st-t {
+  flex: none;
+  font: 590 12px/1.5 var(--sc-font);
+  font-variant-numeric: tabular-nums;
+  color: var(--sc-text);
+  text-shadow: none;
+}
+/* Comments that will surface on their own keep a full-strength timestamp. */
+.scrubber-tip .st-row:not(.is-queued) .st-t { opacity: .45; }
+.scrubber-tip .st-c {
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* Say something about this moment yourself. It rides on YouTube's own time pill
+   — their label for the moment under the cursor — in the pill's own material, so
+   the two read as one control. */
+.scrubber-write {
+  position: absolute;
+  z-index: 1004;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--sc-tint);
+  color: var(--sc-text);
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background .12s ease;
+}
+.scrubber-write svg { width: 14px; height: 14px; display: block; }
+/* No scale on hover: the button moves with the pointer, and a control that
+   grows and shrinks as it slides under the cursor reads as jitter. */
+.scrubber-write:hover {
+  background: color-mix(in srgb, var(--sc-tint) 80%, rgba(255, 255, 255, .4));
+}
+
+/* Writing one: the rows make room rather than the box overlapping them. */
+.scrubber-tip.is-writing .st-rows { flex: 0 1 auto; }
+.scrubber-tip.is-writing .sp-compose { margin: 6px 0 0; }
+
+/* The stretch being described, and how much is in it. */
+.scrubber-tip .st-foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 4px 7px;
+  margin: 3px -7px -4px;
+  border-radius: 9px;
+  font: 500 10.5px/1.4 var(--sc-font);
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, .62);
+}
+.scrubber-tip .st-foot .st-total { color: rgba(255, 255, 255, .82); margin-left: auto; }
+/* Said quietly, while the rest of the window is being fetched. */
+.scrubber-tip .st-foot .st-looking {
+  margin-left: auto;
+  color: rgba(255, 255, 255, .6);
+  font-style: italic;
+}
+.scrubber-tip .st-foot .st-range { flex: 1 1 auto; min-width: 0; }
+.scrubber-tip .st-foot.is-more { cursor: pointer; color: rgba(255, 255, 255, .78); }
+.scrubber-tip .st-foot.is-more:hover { background: rgba(255, 255, 255, .14); color: #fff; }
+.scrubber-tip .st-foot.is-more .st-total::after { content: ' \203A'; }
+.scrubber-tip .st-foot .st-total { white-space: nowrap; }
+
+/* YouTube's own preview, masked while its state is stale. Cleared on the next
+   real hover of the bar. */
+.ytp-tooltip.scrubber-masked { opacity: 0 !important; pointer-events: none !important; }
+
+/* Showing every comment in the window means scrolling for them. */
+.scrubber-tip.is-all .st-rows { overflow-y: auto; overscroll-behavior: contain; }
+
+/* A comment reads as itself until you point at it, and then it reads as a
+   target: the row is selected and a chevron appears on its right edge. The whole
+   row is the button; the arrow just says so. Every comment opens, not only the
+   ones that were cut off — there is a conversation and a reply box in there. */
+.scrubber-tip .st-row { position: relative; cursor: pointer; }
+.scrubber-tip .st-row::before {
+  content: '';
+  position: absolute;
+  inset: -4px -7px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .13);
+  box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .18);
+  opacity: 0;
+  transition: opacity .12s ease;
+  pointer-events: none;
+}
+.scrubber-tip .st-row::after {
+  content: '\203A';
+  position: absolute;
+  right: -1px;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, .34);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, .3);
+  color: rgba(255, 255, 255, .92);
+  font: 500 14px/1 var(--sc-font);
+  text-shadow: none;
+  opacity: 0;
+  transform: translateY(-50%);
+  transition: opacity .12s ease;
+  pointer-events: none;
+}
+.scrubber-tip .st-row:hover::before,
+.scrubber-tip .st-row:hover::after { opacity: 1; }
+
+/* ---- opened: one comment in full, plus its replies ---- */
+.scrubber-tip .st-open {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  /* The panel grows to hold the thread, and only once it has run out of room
+     does the thread scroll inside it — a comment with 26 replies is not
+     something a box can be sized to. */
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, .3) transparent;
+}
+.scrubber-tip .st-open::-webkit-scrollbar { width: 7px; }
+.scrubber-tip .st-open::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, .34);
+  border-radius: 4px;
+}
+.scrubber-tip .st-open::-webkit-scrollbar-track { background: transparent; }
+.scrubber-tip .st-open > * { min-width: 0; }
+.scrubber-tip .st-ohead { display: flex; align-items: baseline; gap: 7px; }
+.scrubber-tip .st-oauthor {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(255, 255, 255, .74);
+  font-size: 11px;
+}
+.scrubber-tip .st-otext {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.scrubber-tip .st-rnote { color: rgba(255, 255, 255, .6); font-size: 11px; }
+
+.scrubber-tip .st-replies {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding-left: 9px;
+  border-left: 2px solid rgba(255, 255, 255, .18);
+}
+/* Replies expand in place. The panel is already at its ceiling by then, so the
+   extra text pushes into the scroll rather than growing the box. */
+.scrubber-tip .st-reply { display: flex; flex-direction: column; gap: 2px; cursor: pointer; }
+.scrubber-tip .st-ra {
+  flex: none;
+  max-width: 70%;
+  padding: 1px 6px;
+  border-radius: 7px;
+  background: var(--sc-chip);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10.5px;
+  color: var(--sc-text);
+  text-shadow: none;
+}
+.scrubber-tip .st-rc {
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.scrubber-tip .st-reply.is-full .st-rc {
+  display: block;
+  -webkit-line-clamp: unset;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.scrubber-tip .st-back {
+  flex: none;
+  align-self: flex-start;
+  margin: 0 0 1px;
+  padding: 4px 11px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .14);
+  box-shadow: inset 0 .5px 0 rgba(255, 255, 255, .34);
+  color: rgba(255, 255, 255, .92);
+  font: 510 11px/1.4 var(--sc-font);
+  letter-spacing: 0;
+  text-transform: none;
+  cursor: pointer;
+}
+.scrubber-tip .st-back:hover { background: rgba(255, 255, 255, .18); color: #fff; }
+
+/* How many people answered, in the same key as the like count. */
+.sp-replies {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font: 510 11px/1 var(--sc-font);
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, .68);
+}
+.sp-replies svg { width: 12.5px; height: 12.5px; display: block; }
+.sp-replies:empty { display: none; }
+/* Where we hold a reply token, the count is also the way to add to it. */
+.sp-replies.can-reply {
+  cursor: pointer;
+  padding: 1px 4px;
+  margin: -1px -4px;
+  border-radius: 999px;
+  transition: background .12s ease, color .12s ease;
+}
+.sp-replies.can-reply:hover { background: rgba(255, 255, 255, .16); color: #fff; }
+.scrubber-popout.is-composing .sp-replies.can-reply { background: rgba(255, 255, 255, .18); color: #fff; }
+
+/* The rest of a long thread, one page at a time. */
+.scrubber-tip .st-more {
+  align-self: flex-start;
+  padding: 5px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--sc-chip);
+  color: var(--sc-text);
+  font: 590 11px/1.4 var(--sc-font);
+  text-shadow: none;
+  cursor: pointer;
+}
+.scrubber-tip .st-more:hover { background: rgba(255, 255, 255, .24); }
+.scrubber-tip .st-more::after { content: ' \203A'; }
+
+/* A name we know where to send you to. Underlined only on hover, so a list of
+   comments does not read as a list of links. */
+.is-who { cursor: pointer; }
+.is-who:hover {
+  color: #fff;
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 255, 255, .5);
+  text-underline-offset: 2px;
+}
+
+/* ---- like count: YouTube's own thumb + compact number ---- */
+.sp-likes {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font: 510 11px/1 var(--sc-font);
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, .82);
+}
+.sp-likes svg { width: 13px; height: 13px; display: block; }
+
+/* Clickable only where we actually hold YouTube's like action for the comment. */
+.sp-likes.can-like {
+  cursor: pointer;
+  padding: 1px 4px;
+  margin: -1px -4px;
+  border-radius: 999px;
+  transition: background .12s ease, color .12s ease;
+}
+.sp-likes.can-like:hover { background: rgba(255, 255, 255, .16); color: #fff; }
+.sp-likes.busy { opacity: .5; cursor: default; }
+.sp-likes.liked { color: var(--sc-text); cursor: default; background: none; }
+.sp-likes.failed { color: #ff6b6b; }
+.sp-likes:empty { display: none; }
+
+/* A comment that named no moment: it gets the closing stretch, and says so
+   rather than claiming a timestamp it doesn't have. */
+
+/* ---- pop-out cards ---- */
+/* The stack is anchored at the bottom, so new cards appear nearest the bar and
+   push older ones upward. */
+/* The stack is as tall as the player lets it be and scrolls past that. One
+   opened card with a long thread is taller than the video on its own, and the
+   cards above it were running off the top of the picture. */
+.scrubber-popouts {
+  position: absolute;
+  left: 18px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, .38) transparent;
+  /* Clear of the progress bar and of YouTube's 'pull up for precise seeking'
+     hint, which sits just above it while the bar is being used. */
+  bottom: 96px;
+  z-index: 61;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  /* Fixed, not max: a column of flex items is as wide as its widest one, so a
+     card visibly changed size whenever a longer card beside it went away. Every
+     card is this wide from the moment it appears until it goes. */
+  box-sizing: border-box;
+  width: min(460px, 52%);
+  /* Room for the scrollbar so it never sits on a card's edge. */
+  padding-right: 4px;
+  pointer-events: none;
+}
+.scrubber-popouts::-webkit-scrollbar { width: 7px; }
+.scrubber-popouts::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, .34);
+  border-radius: 4px;
+}
+.scrubber-popouts::-webkit-scrollbar-track { background: transparent; }
+
+.scrubber-popout {
+  position: relative;
+  padding: 13px 15px 14px;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--sc-radius);
+  background-color: var(--sc-tint);
+  background-image: var(--sc-sheen);
+  -webkit-backdrop-filter: var(--sc-blur);
+  backdrop-filter: var(--sc-blur);
+  box-shadow: var(--sc-shadow);
+  color: #fff;
+  font: 400 14px/1.45 var(--sc-font);
+  letter-spacing: -.006em;
+  /* It fades in and nothing else. A card that slid in from below sat outside
+     the stack's content box while it travelled, which changed what there was to
+     scroll — so the stack scrolled to compensate and the card appeared to
+     overshoot and settle back. Fading touches no geometry. */
+  opacity: 0;
+  transition: opacity .26s var(--sc-ease);
+  /* Hovering one holds it open, so the card has to take the pointer. */
+  pointer-events: auto;
+}
+.scrubber-popout.on { opacity: 1; }
+
+/* The one you are pointing at is the one you mean: it comes forward, brightens,
+   and takes a crisper edge, so a stack of three has an obvious subject. */
+.scrubber-popout:hover {
+  background-color: color-mix(in srgb, var(--sc-tint) 88%, rgba(255, 255, 255, .3));
+}
+.scrubber-popout.on { transition: opacity .26s var(--sc-ease), background-color .16s ease; }
+
+/* Paused video, or a card you are reading: the countdown waits with you. */
+.scrubber-popout:hover .sp-timer i,
+.scrubber-popout.is-held .sp-timer i { animation-play-state: paused; }
+
+/* Clamped to three lines; if that cut something off, it opens in place — the
+   same selection-and-opener the scrub list uses, so they behave alike. */
+.scrubber-popout.is-clipped .sp-text,
+.scrubber-popout.can-open .sp-text { cursor: pointer; }
+/* The opener is a chevron on the right edge of the card — an arrow, not a word,
+   on a shadow just dark enough to lift it off whatever it lands on. */
+.scrubber-popout.is-clipped::after,
+.scrubber-popout.can-open::after {
+  content: '\203A';
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, .34);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, .3);
+  color: rgba(255, 255, 255, .92);
+  font: 500 15px/1 var(--sc-font);
+  text-shadow: none;
+  opacity: 0;
+  transform: translateY(-50%) rotate(90deg);
+  transition: opacity .12s ease;
+  pointer-events: none;
+}
+.scrubber-popout.is-clipped:hover::after,
+.scrubber-popout.can-open:hover::after { opacity: 1; }
+/* Open, the way back stays visible rather than waiting to be found again. */
+.scrubber-popout.is-full::after { opacity: .6; }
+.scrubber-popout.is-full:hover::after { opacity: 1; }
+/* Open, it points back the way it came. */
+.scrubber-popout.is-full::after { transform: translateY(-50%) rotate(-90deg); }
+/* And it sits on the comment, not over the thread or the reply box below it. */
+.scrubber-popout.is-full::after { top: 34px; }
+/* Expanded, the card is already as tall as it gets; the pill just flips. */
+.scrubber-popout.is-full .sp-text { display: block; -webkit-line-clamp: unset; }
+.scrubber-popout .sp-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, .74);
+}
+.scrubber-popout .sp-t {
+  flex: none;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .16);
+  box-shadow: inset 0 .5px 0 rgba(255, 255, 255, .3);
+  font: 590 9.5px/1 var(--sc-font);
+  letter-spacing: .07em;
+  color: rgba(255, 255, 255, .92);
+}
+.scrubber-popout .sp-who {
+  min-width: 0;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Like, reply and close are one row of controls: same height, same weight, same
+   colour, all centred on the same line. */
+.scrubber-popout .sp-close {
+  flex: none;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: rgba(255, 255, 255, .82);
+  font: 400 16px/1 var(--sc-font);
+  cursor: pointer;
+  transition: background .12s ease, color .12s ease;
+}
+.scrubber-popout .sp-close { margin-right: -4px; }
+.scrubber-popout .sp-close:hover { background: rgba(255, 255, 255, .16); color: #fff; }
+.scrubber-popout .sp-likes { align-self: center; }
+.scrubber-popout .sp-gap { flex: 1 1 auto; min-width: 4px; }
+
+/* ---- writing a reply ---- */
+.sp-compose {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 10px 0 2px;
+}
+.scrubber-tip .sp-compose { margin: 4px 0 0; }
+.sp-input {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-height: 46px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, .26);
+  box-shadow: inset 0 .5px 0 rgba(255, 255, 255, .16);
+  color: #fff;
+  font: 400 13px/1.4 var(--sc-font);
+  text-shadow: none;
+  resize: none;
+  outline: none;
+}
+.sp-input::placeholder { color: rgba(255, 255, 255, .45); }
+.sp-input:focus { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .28); }
+.sp-crow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
+}
+.sp-cstamp {
+  flex: none;
+  margin-right: auto;
+  padding: 1px 6px;
+  border-radius: 7px;
+  background: var(--sc-chip);
+  color: var(--sc-text);
+  font: 590 10.5px/1.5 var(--sc-font);
+  font-variant-numeric: tabular-nums;
+  text-shadow: none;
+}
+.sp-cnote {
+  font: 500 10.5px/1.4 var(--sc-font);
+  color: rgba(255, 255, 255, .6);
+}
+/* The way out of the reply box, next to the way forward. */
+.sp-cancel {
+  flex: none;
+  padding: 5px 11px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--sc-chip);
+  color: var(--sc-text);
+  font: 500 11.5px/1.4 var(--sc-font);
+  text-shadow: none;
+  cursor: pointer;
+}
+.sp-cancel:hover { background: rgba(255, 255, 255, .26); }
+
+.sp-send {
+  flex: none;
+  padding: 5px 13px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--sc);
+  color: #fff;
+  font: 590 11.5px/1.4 var(--sc-font);
+  text-shadow: none;
+  cursor: pointer;
+  transition: filter .12s ease, opacity .12s ease;
+}
+.sp-send:hover { filter: brightness(1.12); }
+.sp-send:disabled { opacity: .5; cursor: default; }
+.scrubber-popout .sp-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* How long it has left, and no louder than that. */
+/* Pinned to the very bottom edge, corner to corner. */
+.scrubber-popout .sp-timer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  margin: 0;
+  background: rgba(255, 255, 255, .12);
+  overflow: hidden;
+}
+.scrubber-popout .sp-timer i {
+  display: block;
+  height: 100%;
+  background: var(--sc);
+  transform-origin: left center;
+  animation-name: sp-countdown;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+@keyframes sp-countdown { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .scrubber-popout { transition: none; }
+  .scrubber-density > i { box-shadow: none; }
+  .scrubber-density.is-fresh > i { animation: none; }
+}
+
+/* ---- mobile web (m.youtube.com) ---- */
+
+/* Used only when the mobile progress bar can't be identified: a strip pinned to
+   the bottom of the player so the marks still render on an unfamiliar layout. */
+.scrubber-fallback-host {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  pointer-events: none;
+  z-index: 29;
+}
+
+.scrubber-density.is-mobile {
+  height: 22px;
+  gap: 1px;
+  opacity: .9;
+}
+.scrubber-density.is-mobile > i {
+  box-shadow: none;      /* cheaper to composite on a phone GPU */
+  opacity: .6;
+}
+.scrubber-density.is-mobile > i.hot { opacity: .95; }
+
+.scrubber-popouts.is-mobile {
+  left: 10px;
+  right: 10px;
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  width: auto;
+  max-width: none;
+}
+.scrubber-popout.is-mobile {
+  padding: 11px 13px 12px;
+  border-radius: var(--sc-radius);
+  font-size: 13px;
+}
+.scrubber-popout.is-mobile .sp-text { -webkit-line-clamp: 2; }
+.scrubber-popout.is-mobile .sp-meta { font-size: 11px; margin-bottom: 3px; }
+
+/* Touch has no hover, so the tooltip never applies there. */
+@media (pointer: coarse) {
+  .scrubber-tip { display: none !important; }
+}

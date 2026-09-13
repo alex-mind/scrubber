@@ -1,0 +1,56 @@
+{
+  "manifest_version": 3,
+  "name": "Scrubber",
+  "version": "1.0.0",
+  "homepage_url": "https://alex-mind.github.io/scrubber/",
+  "description": "Pins YouTube comments to the moment they're about: density marks on the progress bar, and the good ones surface as you watch.",
+  "permissions": [
+    "storage"
+  ],
+  "action": {
+    "default_title": "Scrubber",
+    "default_popup": "src/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.youtube.com/*",
+        "https://m.youtube.com/*",
+        "https://youtube.com/*"
+      ],
+      "js": [
+        "src/compat.js",
+        "src/adapters.js",
+        "src/innertube.js",
+        "src/content.js"
+      ],
+      "css": [
+        "src/content.css"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "src/content.css"
+      ],
+      "matches": [
+        "https://www.youtube.com/*",
+        "https://m.youtube.com/*",
+        "https://youtube.com/*"
+      ]
+    }
+  ]
+}

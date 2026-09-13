@@ -1,0 +1,13 @@
+.DS_Store
+node_modules/
+
+# Build output. The store package is attached to a GitHub release, not committed.
+dist/
+build/
+*.zip
+
+# The generated Safari Xcode project lives outside the repo (build.sh recreates it).
+scrubber-safari/
+
+# Leftover Xcode per-user UI state from an earlier conversion — not project files.
+safari/

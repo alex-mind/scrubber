@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Policy — Scrubber</title>
+<meta name="description" content="Scrubber's privacy policy. It has no server, collects nothing, and stores only your own settings.">
+<link rel="icon" href="icon.png">
+<style>
+  :root{
+    color-scheme: light dark;
+    --bg:#fff; --fg:#16181d; --dim:#71757e; --line:#e8e9ed; --field:#f5f5f7; --accent:#d61f58;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#17181c; --fg:#e9eaee; --dim:#9a9ea8; --line:#292b31; --field:#212328; --accent:#ff6f9c; }
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--fg);
+    font:400 16px/1.65 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    letter-spacing:-.006em;
+  }
+  .wrap{max-width:660px; margin:0 auto; padding:0 24px}
+  main{padding-block:64px 40px}
+  a{color:var(--accent)}
+  h1{font-size:clamp(27px,5vw,36px); font-weight:600; letter-spacing:-.024em; margin:0 0 8px; line-height:1.15}
+  h2{font-size:17px; font-weight:600; letter-spacing:-.015em; margin:38px 0 10px}
+  p{margin:0 0 14px}
+  .dateline{color:var(--dim); font-size:14px; margin:0 0 30px}
+  .lead{font-size:17.5px; color:var(--fg); background:var(--field);
+        border-radius:12px; padding:20px 22px; margin:0 0 8px}
+  ul{padding-left:20px; color:var(--dim)}
+  li{margin:9px 0}
+  li b{color:var(--fg); font-weight:500}
+  code{background:var(--field); border:1px solid var(--line); border-radius:5px;
+       padding:1.5px 6px; font:500 13.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace}
+  .back{display:inline-block; margin-bottom:30px; font-size:14px; color:var(--dim); text-decoration:none}
+  .back:hover{color:var(--accent)}
+  footer{border-top:1px solid var(--line); margin-top:46px; padding-block:24px 56px;
+         color:var(--dim); font-size:13.5px}
+  footer a{color:var(--dim)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<main>
+
+  <a class="back" href="./">← Scrubber</a>
+
+  <h1>Privacy Policy</h1>
+  <p class="dateline">Last updated 13 September 2026</p>
+
+  <p class="lead">
+    Scrubber collects nothing, transmits nothing, and has no server. The rest of this
+    page is just that statement made specific enough to check.
+  </p>
+
+  <h2>What is collected</h2>
+  <p>
+    Nothing. Scrubber has no analytics, no telemetry, no crash reporting, no
+    advertising identifiers, and no account system. No data about you or your
+    browsing ever leaves your device, because there is nowhere for it to go — the
+    developer operates no server, and no third-party service is contacted.
+  </p>
+
+  <h2>What is stored</h2>
+  <p>
+    Only your own settings: whether the extension is enabled, whether pop-ups are
+    shown, the minimum-likes threshold, the cooldown between pop-ups, and the window
+    in seconds around the playhead. These are written only when you change a control
+    in the toolbar popup.
+  </p>
+  <p>
+    They live in the browser's own extension <code>storage</code> area. Where your
+    browser offers it, <code>storage.sync</code> is used so your settings follow your
+    browser profile across your own devices — that synchronisation is performed by
+    your browser vendor, under their privacy policy, not by Scrubber. Otherwise
+    settings stay on the one device in <code>storage.local</code>. Uninstalling the
+    extension removes them.
+  </p>
+
+  <h2>Network requests</h2>
+  <p>
+    Scrubber makes one kind of request: to YouTube's own internal comment endpoint on
+    <code>youtube.com</code>, from within the YouTube page itself, using the session
+    already in your browser. It is the same request the YouTube page makes for itself
+    when you scroll down to the comments.
+  </p>
+  <p>
+    YouTube therefore sees an ordinary request from your ordinary session, exactly as
+    it would if you had scrolled. Google's handling of that is governed by
+    <a href="https://policies.google.com/privacy">Google's Privacy Policy</a>. No
+    other server is contacted by the extension, ever.
+  </p>
+
+  <h2>Comment content</h2>
+  <p>
+    Comment text is read from the response, scanned for timestamps, drawn on screen,
+    and discarded when the page closes. It is held in memory only. It is never written
+    to storage, never sent anywhere, and never associated with you.
+  </p>
+
+  <h2>Where it runs</h2>
+  <p>
+    Only on <code>youtube.com</code>. This is enforced by the extension manifest, not
+    by a setting — the browser will not run it anywhere else. The only permission the
+    extension requests is <code>storage</code>, for the settings described above. It
+    requests no host permissions.
+  </p>
+
+  <h2>Children</h2>
+  <p>
+    Scrubber is not directed at children and collects no data from anyone, including
+    children.
+  </p>
+
+  <h2>Verifying any of this</h2>
+  <p>
+    The complete source is public at
+    <a href="https://github.com/alex-mind/scrubber">github.com/alex-mind/scrubber</a>.
+    It is a few thousand lines of plain JavaScript with no build step, no bundler and
+    no dependencies, so what is published to the store is what you can read. Searching
+    the source for <code>fetch(</code> returns exactly one call, to the YouTube
+    endpoint described above.
+  </p>
+
+  <h2>Changes to this policy</h2>
+  <p>
+    If Scrubber ever handles data differently, this page will be updated before the
+    change ships, and the date at the top will say so. The page's full history is
+    public in the repository.
+  </p>
+
+  <h2>Contact</h2>
+  <p>
+    Questions or corrections:
+    <a href="https://github.com/alex-mind/scrubber/issues">open an issue</a>.
+  </p>
+
+</main>
+<footer>
+  <a href="./">Scrubber</a> ·
+  <a href="https://github.com/alex-mind/scrubber">Source</a> ·
+  MIT licensed
+</footer>
+</div>
+</body>
+</html>

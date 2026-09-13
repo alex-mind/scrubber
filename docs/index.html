@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scrubber — YouTube comments pinned to the moment they're about</title>
+<meta name="description" content="Scrubber reads the timestamps people type into YouTube comments and draws them as density marks over the progress bar. Free, open source, no tracking.">
+<link rel="icon" href="icon.png">
+<meta property="og:title" content="Scrubber">
+<meta property="og:description" content="YouTube comments pinned to the moment they're about.">
+<meta property="og:image" content="https://alex-mind.github.io/scrubber/promo.png">
+<meta property="og:url" content="https://alex-mind.github.io/scrubber/">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+  /* Palette is lifted from src/popup.html so the site and the product agree. */
+  :root{
+    color-scheme: light dark;
+    --bg:#fff; --fg:#16181d; --dim:#71757e; --line:#e8e9ed; --field:#f5f5f7;
+    --accent:#d61f58; --accent-soft:rgba(214,31,88,.10);
+    --player:#16181d; --player-fg:#e9eaee; --player-dim:#9a9ea8;
+    --track:#4a4c55; --mark:#ff6f9c;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#17181c; --fg:#e9eaee; --dim:#9a9ea8; --line:#292b31; --field:#212328;
+      --accent:#ff6f9c; --accent-soft:rgba(255,111,156,.12);
+      --player:#0e0f12; --player-fg:#e9eaee; --player-dim:#9a9ea8;
+    }
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; padding-block:0; background:var(--bg); color:var(--fg);
+    font:400 16px/1.6 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    letter-spacing:-.006em;
+  }
+  .wrap{max-width:860px; margin:0 auto; padding:0 24px}
+  a{color:var(--accent)}
+  h1,h2,h3{letter-spacing:-.024em; line-height:1.12; margin:0}
+
+  /* ---------- hero ---------- */
+  header{padding-block:72px 8px}
+  .brand{display:flex; align-items:center; gap:13px; margin-bottom:26px}
+  .brand img{width:38px; height:38px; border-radius:9px; display:block}
+  .brand b{font-size:17px; font-weight:600; letter-spacing:-.015em}
+  h1{font-size:clamp(32px,6.4vw,52px); font-weight:600; max-width:15ch}
+  h1 em{font-style:normal; color:var(--accent)}
+  .lede{margin:20px 0 0; font-size:clamp(16.5px,2.4vw,19px); color:var(--dim); max-width:56ch}
+
+  /* ---------- install ---------- */
+  .cta{display:flex; flex-wrap:wrap; align-items:center; gap:14px; margin:34px 0 10px}
+  .btn{
+    display:inline-flex; align-items:center; gap:10px;
+    padding:13px 22px; border-radius:11px; border:1px solid transparent;
+    background:var(--accent); color:#fff; text-decoration:none;
+    font-size:15.5px; font-weight:500; letter-spacing:-.01em;
+    transition:transform .12s ease, opacity .12s ease;
+  }
+  .btn:hover{opacity:.9; transform:translateY(-1px)}
+  .btn svg{width:19px; height:19px; flex:none}
+  .cta small{color:var(--dim); font-size:13.5px; line-height:1.45}
+  .note{margin:6px 0 0; font-size:13.5px; color:var(--dim)}
+
+  /* ---------- the demo ---------- */
+  .demo{margin:46px 0 0}
+  .player{
+    position:relative; border-radius:13px; overflow:hidden; background:var(--player);
+    aspect-ratio:16/9; border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .stage{
+    position:absolute; inset:0; display:grid; place-items:center; text-align:center;
+    color:var(--player-dim); font-size:13px; padding:0 24px 78px;
+  }
+  .stage span{opacity:.5}
+
+  /* a comment surfacing, the way the extension does it */
+  .card{
+    position:absolute; left:16px; right:16px; bottom:70px; max-width:390px;
+    background:rgba(22,24,29,.94); color:var(--player-fg);
+    border:1px solid rgba(255,255,255,.10); border-radius:11px;
+    padding:11px 13px; font-size:13.5px; line-height:1.5;
+    opacity:0; transform:translateY(6px); transition:opacity .35s ease, transform .35s ease;
+    backdrop-filter:blur(8px); text-align:left; pointer-events:none;
+  }
+  .card.on{opacity:1; transform:none}
+  .card .meta{display:flex; gap:9px; align-items:center; margin-bottom:5px;
+              font-size:11.5px; color:var(--player-dim)}
+  .card .ts{color:var(--mark); font-weight:600; font-variant-numeric:tabular-nums}
+  .card .likes{margin-left:auto; font-variant-numeric:tabular-nums}
+
+  /* the progress bar and its density marks — the whole point */
+  .bar{position:absolute; left:16px; right:16px; bottom:20px; height:46px; cursor:crosshair}
+  .marks{position:absolute; left:0; right:0; bottom:9px; height:36px;
+         display:flex; align-items:flex-end; gap:2px}
+  .marks i{flex:1 1 0; min-width:1px; background:var(--mark); border-radius:1.5px; display:block}
+  .track{position:absolute; left:0; right:0; bottom:2px; height:4px;
+         background:var(--track); border-radius:2px; overflow:hidden}
+  .fill{position:absolute; left:0; top:0; bottom:0; width:0; background:var(--accent); border-radius:2px}
+  .head{position:absolute; bottom:4px; width:11px; height:11px; margin-left:-5.5px;
+        border-radius:50%; background:#fff; box-shadow:0 0 0 3px rgba(214,31,88,.5)}
+  .cap{margin:13px 2px 0; font-size:13.5px; color:var(--dim)}
+
+  /* ---------- content ---------- */
+  section{padding-block:52px}
+  h2{font-size:clamp(21px,3.4vw,26px); font-weight:600}
+  .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:26px; margin-top:26px}
+  .grid h3{font-size:15.5px; font-weight:600; margin-bottom:7px}
+  .grid p{margin:0; color:var(--dim); font-size:14.5px}
+
+  .priv{background:var(--field); border-radius:14px; padding:28px 26px; margin-top:26px}
+  .priv ul{margin:16px 0 0; padding-left:20px; color:var(--dim); font-size:15px}
+  .priv li{margin:8px 0}
+  .priv li b{color:var(--fg); font-weight:500}
+
+  details{border-top:1px solid var(--line); padding-top:20px; margin-top:34px}
+  summary{cursor:pointer; font-weight:500; font-size:15px; list-style:none}
+  summary::-webkit-details-marker{display:none}
+  summary::before{content:"▸ "; color:var(--dim)}
+  details[open] summary::before{content:"▾ "}
+  details ol{color:var(--dim); font-size:14.5px; padding-left:22px}
+  details li{margin:9px 0}
+  code{background:var(--field); border:1px solid var(--line); border-radius:5px;
+       padding:1.5px 6px; font:500 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace}
+
+  table{width:100%; border-collapse:collapse; margin-top:20px; font-size:14.5px}
+  th,td{text-align:left; padding:11px 12px 11px 0; border-bottom:1px solid var(--line)}
+  th{font-weight:500; color:var(--dim); font-size:13px}
+  td.yes{color:var(--accent)}
+
+  footer{border-top:1px solid var(--line); padding-block:30px 46px; margin-top:26px;
+         color:var(--dim); font-size:13.5px;
+         display:flex; flex-wrap:wrap; gap:8px 20px; align-items:center}
+  footer a{color:var(--dim)}
+  footer .sp{flex:1 1 auto}
+
+  @media (max-width:560px){
+    header{padding-block:44px 4px}
+    .card{bottom:62px; font-size:12.5px}
+    .bar{height:38px}
+    .marks{height:28px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .card{transition:none}
+    .btn{transition:none}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<header>
+  <div class="brand">
+    <img src="icon.png" alt="" width="38" height="38">
+    <b>Scrubber</b>
+  </div>
+  <h1>Comments pinned to the <em>moment they're about</em>.</h1>
+  <p class="lede">
+    People have been typing timestamps into YouTube comments for over a decade —
+    then burying them under a thousand other comments. Scrubber reads them off the
+    page and draws them where they belong: on the progress bar.
+  </p>
+
+  <div class="cta">
+    <a class="btn" id="install" href="https://github.com/alex-mind/scrubber/releases/latest">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      <span id="install-label">Get Scrubber</span>
+    </a>
+    <small id="install-note">Free and open source. Works on desktop YouTube.</small>
+  </div>
+</header>
+
+<div class="demo">
+  <div class="player">
+    <div class="stage"><span>Move your cursor across the bar below.</span></div>
+
+    <div class="card" id="card">
+      <div class="meta">
+        <span class="ts" id="c-ts">0:00</span>
+        <span id="c-author">—</span>
+        <span class="likes" id="c-likes"></span>
+      </div>
+      <div id="c-text"></div>
+    </div>
+
+    <div class="bar" id="bar">
+      <div class="marks" id="marks"></div>
+      <div class="track"><div class="fill" id="fill"></div></div>
+      <div class="head" id="head" style="left:0"></div>
+    </div>
+  </div>
+  <p class="cap">
+    A real density profile: taller, brighter marks mean more people stopped to say
+    something about that moment. Hover to scrub.
+  </p>
+</div>
+
+<section>
+  <h2>What it does</h2>
+  <div class="grid">
+    <div>
+      <h3>Shows a video's shape</h3>
+      <p>Where people stopped to comment is where something happened. You can read
+         that off the bar before you watch a second.</p>
+    </div>
+    <div>
+      <h3>Surfaces the good one</h3>
+      <p>As you watch, the best-liked comment about the moment you're in appears,
+         then gets out of the way. One per burst, spaced out.</p>
+    </div>
+    <div>
+      <h3>A contents page nobody wrote</h3>
+      <p>On tutorials, roughly one comment in eight carries a timestamp, and they
+         cluster hard on the parts people got stuck at.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>About your data</h2>
+  <div class="priv">
+    <p style="margin:0; color:var(--dim); font-size:15px">
+      A YouTube extension that reads comments deserves suspicion. So, precisely:
+    </p>
+    <ul>
+      <li><b>There is no server.</b> Not one that's optional or off by default —
+          there is no backend, no account, and nothing to sign into.</li>
+      <li><b>It asks YouTube the way the page does.</b> Comments come from
+          youtube.com's own endpoint, on youtube.com, using the session already in
+          your browser. No third party ever sees anything.</li>
+      <li><b>It stores your settings and nothing else.</b> No history, no
+          identifiers, no analytics, no telemetry.</li>
+      <li><b>It runs only on youtube.com.</b> The one permission it asks for is
+          <code>storage</code>, for those settings.</li>
+      <li><b>You can check all of this.</b> The source is public and it's about
+          4,000 lines with no build step and no dependencies.</li>
+    </ul>
+  </div>
+
+  <table>
+    <tr><th>Browser</th><th>Status</th></tr>
+    <tr><td>Chrome, Brave, Arc, Opera</td><td class="yes">Supported</td></tr>
+    <tr><td>Edge</td><td class="yes">Supported</td></tr>
+    <tr><td>Safari</td><td>Works, but needs an Apple developer account to ship — not yet</td></tr>
+    <tr><td>Firefox</td><td>Not yet</td></tr>
+  </table>
+
+  <details>
+    <summary>Install it manually instead</summary>
+    <ol>
+      <li>Download the zip from
+          <a href="https://github.com/alex-mind/scrubber/releases/latest">the latest release</a>
+          and unzip it.</li>
+      <li>Open <code>chrome://extensions</code> (or <code>edge://extensions</code>).</li>
+      <li>Turn on <b>Developer mode</b>, top right.</li>
+      <li>Click <b>Load unpacked</b> and pick the unzipped folder.</li>
+      <li>Open any YouTube video. Marks appear once the comments load.</li>
+    </ol>
+    <p style="font-size:14px; color:var(--dim); margin:0">
+      Manually loaded extensions don't auto-update, and Chrome will nag you about
+      developer mode on every launch. The store version is the quiet one.
+    </p>
+  </details>
+</section>
+
+<footer>
+  <a href="https://github.com/alex-mind/scrubber">Source</a>
+  <a href="privacy.html">Privacy</a>
+  <a href="https://github.com/alex-mind/scrubber/issues">Report a problem</a>
+  <span class="sp"></span>
+  <span>MIT licensed</span>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------------------------------------------------------------
+     Store URLs. Both are null until the listing exists — a store URL cannot
+     be known before the first draft upload assigns an item ID. While null,
+     the button points at the GitHub release and says so.
+     --------------------------------------------------------------------- */
+  var STORES = {
+    chrome: null,  // 'https://chromewebstore.google.com/detail/scrubber/<ITEM_ID>'
+    edge:   null   // 'https://microsoftedge.microsoft.com/addons/detail/<ITEM_ID>'
+  };
+  var RELEASE = 'https://github.com/alex-mind/scrubber/releases/latest';
+
+  function browser(){
+    var ua = navigator.userAgent;
+    if (/Edg\//.test(ua))                      return 'edge';
+    if (/Firefox\//.test(ua))                  return 'firefox';
+    // Chrome's UA is a superset of Safari's, so Chrome has to be ruled out first.
+    if (/Chrome\//.test(ua) && !/OPR\//.test(ua)) return 'chrome';
+    if (/OPR\//.test(ua))                      return 'chrome';  // Opera installs from the CWS
+    if (/Safari\//.test(ua))                   return 'safari';
+    return 'other';
+  }
+
+  var btn   = document.getElementById('install');
+  var label = document.getElementById('install-label');
+  var note  = document.getElementById('install-note');
+  var b     = browser();
+
+  var NAMES = { chrome:'Chrome', edge:'Edge', safari:'Safari', firefox:'Firefox' };
+
+  if (b === 'safari' || b === 'firefox') {
+    label.textContent = 'Download for Chrome or Edge';
+    btn.href = RELEASE;
+    note.innerHTML = 'Not available for ' + NAMES[b] + ' yet — see the table below.';
+  } else if (STORES[b]) {
+    label.textContent = 'Add to ' + NAMES[b];
+    btn.href = STORES[b];
+    note.textContent = 'Free and open source. Two clicks: this button, then Add extension.';
+  } else {
+    label.textContent = 'Download the extension';
+    btn.href = RELEASE;
+    note.innerHTML = 'Store listing is in review — for now it installs from the zip in '
+                   + '<a href="#" onclick="document.querySelector(\'details\').open=true;'
+                   + 'document.querySelector(\'details\').scrollIntoView({behavior:\'smooth\'});'
+                   + 'return false;">four steps</a>.';
+  }
+
+  /* ---------------------------------------------------------------------
+     The demo. A real density profile — clustered, not evenly spread, because
+     that is what timestamped comments actually look like.
+     --------------------------------------------------------------------- */
+  var DURATION = 1147;                                  // 19:07, a plausible tutorial
+  var PROFILE = [2,1,3,2,5,4,3,7,18,24,11,5,3,4,6,9,14,11,7,5,4,3,5,8,
+                 21,29,16,8,5,4,3,2,4,7,12,9,6,4,3,5,9,15,26,34,19,9,5,3,2,1];
+
+  // Seconds, not fractions — so the timestamp the card renders is exactly the one
+  // quoted in the comment text. Deriving it the other way round drifts by a second.
+  var COMMENTS = [
+    { sec:192, author:'@mara_dev',      likes:'2.1K',
+      text:'The bit at 3:12 is the only explanation of this that ever made sense to me.' },
+    { sec:574, author:'@notveryonline', likes:'864',
+      text:"Came back three times for 9:34. That's the part the docs leave out." },
+    { sec:988, author:'@k_builds',      likes:'4.7K',
+      text:'16:28 — watch his hands, not the slide. That is the whole trick.' }
+  ];
+  COMMENTS.forEach(function(c){ c.at = c.sec / DURATION; });
+
+  var marksEl = document.getElementById('marks');
+  var fill    = document.getElementById('fill');
+  var head    = document.getElementById('head');
+  var bar     = document.getElementById('bar');
+  var card    = document.getElementById('card');
+
+  var max = Math.max.apply(null, PROFILE);
+  marksEl.innerHTML = PROFILE.map(function(v){
+    var h = Math.max(2, Math.round(v / max * 36));
+    var o = (0.28 + 0.72 * (v / max)).toFixed(2);
+    return '<i style="height:' + h + 'px;opacity:' + o + '"></i>';
+  }).join('');
+
+  function fmt(sec){
+    var m = Math.floor(sec / 60), s = Math.floor(sec % 60);
+    return m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  var shown = -1;
+  function showCard(i){
+    if (i === shown) return;
+    shown = i;
+    if (i < 0) { card.classList.remove('on'); return; }
+    var c = COMMENTS[i];
+    document.getElementById('c-ts').textContent     = fmt(c.sec);
+    document.getElementById('c-author').textContent = c.author;
+    document.getElementById('c-likes').textContent  = c.likes + ' likes';
+    document.getElementById('c-text').textContent   = c.text;
+    card.classList.add('on');
+  }
+
+  function at(p){                       // p is 0..1 along the bar
+    p = Math.max(0, Math.min(1, p));
+    fill.style.width = (p * 100) + '%';
+    head.style.left  = (p * 100) + '%';
+    // Same idea as the extension: a comment belongs to the moment if the
+    // playhead is inside a window either side of it.
+    var hit = -1;
+    for (var i = 0; i < COMMENTS.length; i++){
+      if (Math.abs(COMMENTS[i].at - p) < 0.045) { hit = i; break; }
+    }
+    showCard(hit);
+  }
+
+  function fromEvent(e){
+    var r = bar.getBoundingClientRect();
+    var x = (e.touches ? e.touches[0].clientX : e.clientX) - r.left;
+    at(x / r.width);
+  }
+
+  var auto = null;
+  function stopAuto(){ if (auto) { cancelAnimationFrame(auto); auto = null; } }
+
+  bar.addEventListener('mousemove', function(e){ stopAuto(); fromEvent(e); });
+  bar.addEventListener('touchmove', function(e){ stopAuto(); fromEvent(e); e.preventDefault(); },
+                       { passive:false });
+
+  // Autoplay the sweep until the visitor takes over, so the idea lands without
+  // anyone having to work out that the bar is interactive.
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduced) {
+    at(COMMENTS[1].at);
+  } else {
+    var t0 = null, LOOP = 17000;
+    (function step(ts){
+      if (t0 === null) t0 = ts;
+      at(((ts - t0) % LOOP) / LOOP);
+      auto = requestAnimationFrame(step);
+    })(performance.now());
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!doctype html><meta charset="utf-8">
+<style>
+  /* Chrome Web Store small promotional tile: exactly 440x280, full bleed.
+     Palette lifted from src/popup.html so the listing and the product match. */
+  html,body{margin:0}
+  body{
+    width:440px;height:280px;overflow:hidden;position:relative;
+    background:radial-gradient(120% 140% at 12% 0%, #23242b 0%, #17181c 62%);
+    font:400 13px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
+    color:#e9eaee;letter-spacing:-.005em;
+    display:flex;flex-direction:column;justify-content:center;
+    padding:0 34px;box-sizing:border-box;
+  }
+  h1{margin:0;font-size:38px;font-weight:600;letter-spacing:-.028em;line-height:1}
+  p{margin:11px 0 0;font-size:14.5px;color:#9a9ea8;max-width:300px;letter-spacing:-.008em}
+  p b{color:#ff6f9c;font-weight:500}
+
+  /* The product motif: density marks over a progress bar, clustered the way real
+     timestamped comments cluster rather than spread evenly. */
+  .bar{position:absolute;left:0;right:0;bottom:0;height:88px}
+  .marks{position:absolute;left:34px;right:34px;bottom:26px;height:52px;
+         display:flex;align-items:flex-end;gap:3px}
+  .marks i{flex:1 1 0;border-radius:1.5px;background:#ff6f9c;display:block}
+  .track{position:absolute;left:34px;right:34px;bottom:18px;height:4px;
+         border-radius:2px;background:#3a3c44;overflow:hidden}
+  .track u{position:absolute;inset:0 62% 0 0;background:#d61f58;border-radius:2px}
+  /* The playhead sits at the progress boundary (38%), not at the track's end. */
+  .head{position:absolute;left:38%;top:50%;width:9px;height:9px;border-radius:50%;
+        background:#fff;transform:translate(-50%,-50%);
+        box-shadow:0 0 0 3px rgba(214,31,88,.5)}
+</style>
+<h1>Scrubber</h1>
+<p>YouTube comments pinned to the <b>moment they're about</b>.</p>
+<div class="bar">
+  <div class="marks" id="m"></div>
+  <div class="track"><u></u><span class="head"></span></div>
+</div>
+<script>
+  // Height profile of a real density curve: quiet open, a spike at the joke,
+  // a broad hump mid-video, a tail at the payoff.
+  const d=[4,3,6,5,9,7,26,34,18,8,6,5,7,11,16,22,19,25,17,12,9,7,6,9,14,12,8,6,5,9,
+           13,10,7,5,4,6,8,20,31,23,11,7,5,4,6,5,3,4,3,2];
+  const max=Math.max(...d);
+  document.getElementById('m').innerHTML=d.map(v=>{
+    const h=Math.max(3,Math.round(v/max*52));
+    // Taller marks read as hotter: opacity carries the second dimension.
+    const o=(.30+.70*(v/max)).toFixed(2);
+    return `<i style="height:${h}px;opacity:${o}"></i>`;
+  }).join('');
+</script>
