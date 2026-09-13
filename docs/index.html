@@ -185,7 +185,7 @@
   </div>
 
   <details class="manual">
-    <summary>Rather install it by hand?</summary>
+    <summary>Manual installation from Safari and others</summary>
 
     <h4>Chrome, Edge, Brave, Arc, Opera</h4>
     <ol>
@@ -359,7 +359,9 @@
   if (b === 'safari' || b === 'firefox') {
     label.textContent = 'Download for Chrome or Edge';
     btn.href = RELEASE;
-    note.innerHTML = 'Not available for ' + NAMES[b] + ' yet — see the table below.';
+    // No note here: the collapsible below covers these browsers by name, and the
+    // support table says the rest. An empty <small> would just leave a gap.
+    note.hidden = true;
   } else if (STORES[b]) {
     label.textContent = 'Add to ' + NAMES[b];
     btn.href = STORES[b];
