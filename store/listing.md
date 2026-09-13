@@ -46,6 +46,12 @@ WHAT YOU SEE
 
 • As you watch, the best comment about the moment you're in surfaces on its own, then gets out of the way. One per burst, spaced out, and never the same moment twice in a row.
 
+ADD YOUR OWN
+
+The same panel you read from is the one you write from. Reply to a comment, like it, or write your own comment stamped with the moment you're at — it posts to YouTube normally, so it auto-links for everyone, whether or not they have Scrubber.
+
+Nothing is ever posted on your behalf automatically. Every comment, reply and like happens only when you click send, and nothing at all can be posted while you're signed out.
+
 WHY IT'S USEFUL
 
 On tutorials it's a table of contents the creator never wrote — roughly one comment in eight carries a timestamp, and they cluster hard around the parts people got stuck on. On podcasts and long interviews it's a map of the moments worth hearing.
@@ -56,7 +62,9 @@ A minimum-likes threshold, a cooldown between pop-ups, and how wide a window aro
 
 ABOUT YOUR DATA — THE SHORT VERSION
 
-Scrubber asks YouTube for comments exactly the way the YouTube page itself does: same origin, same session already in your browser. There is no server of ours, no third party, and no account. It reads nothing outside youtube.com and stores nothing but your own settings. No analytics, no tracking, no telemetry of any kind.
+Scrubber talks to YouTube exactly the way the YouTube page itself does: same origin, same session already in your browser. There is no server of ours, no third party, and no account. It runs nowhere outside youtube.com and stores nothing but your own settings. No analytics, no tracking, no telemetry of any kind.
+
+The only thing that ever leaves your browser is a comment, reply or like you chose to send — and it goes to YouTube, exactly where it would have gone if you had used YouTube's own comment box. We never see it, because there is no "we" to see it.
 
 The source is public: https://github.com/alex-mind/scrubber
 

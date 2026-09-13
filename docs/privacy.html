@@ -51,16 +51,19 @@
   <p class="dateline">Last updated 13 September 2026</p>
 
   <p class="lead">
-    Scrubber collects nothing, transmits nothing, and has no server. The rest of this
-    page is just that statement made specific enough to check.
+    Scrubber collects nothing, has no server, and sends nothing anywhere except
+    YouTube — and to YouTube only what you deliberately typed and pressed send on. The
+    rest of this page is that statement made specific enough to check.
   </p>
 
   <h2>What is collected</h2>
   <p>
     Nothing. Scrubber has no analytics, no telemetry, no crash reporting, no
     advertising identifiers, and no account system. No data about you or your
-    browsing ever leaves your device, because there is nowhere for it to go — the
-    developer operates no server, and no third-party service is contacted.
+    browsing is ever sent to the developer, because there is nowhere for it to go —
+    the developer operates no server, and no third-party service is contacted. The
+    only thing that ever leaves your browser is a comment or like you chose to send
+    to YouTube yourself; see below.
   </p>
 
   <h2>What is stored</h2>
@@ -81,10 +84,15 @@
 
   <h2>Network requests</h2>
   <p>
-    Scrubber makes one kind of request: to YouTube's own internal comment endpoint on
-    <code>youtube.com</code>, from within the YouTube page itself, using the session
-    already in your browser. It is the same request the YouTube page makes for itself
-    when you scroll down to the comments.
+    Scrubber talks to exactly one host: <code>youtube.com</code>. Every request is made
+    from within the YouTube page itself, on the same origin, using the session already
+    in your browser — the same internal endpoints the YouTube page calls for itself.
+    There is exactly one <code>fetch()</code> call in the whole extension.
+  </p>
+  <p>
+    Reading comments is the same request the page makes when you scroll down to the
+    comments. Writing — see below — is the same request the page makes when you press
+    Comment in YouTube's own box.
   </p>
   <p>
     YouTube therefore sees an ordinary request from your ordinary session, exactly as
@@ -93,11 +101,27 @@
     other server is contacted by the extension, ever.
   </p>
 
-  <h2>Comment content</h2>
+  <h2>Comment content you read</h2>
   <p>
-    Comment text is read from the response, scanned for timestamps, drawn on screen,
-    and discarded when the page closes. It is held in memory only. It is never written
-    to storage, never sent anywhere, and never associated with you.
+    Other people's comment text is read from the response, scanned for timestamps,
+    drawn on screen, and discarded when the page closes. It is held in memory only. It
+    is never written to storage, never sent anywhere, and never associated with you.
+  </p>
+
+  <h2>Comment content you write</h2>
+  <p>
+    Scrubber can do three things as the signed-in you: post a comment stamped with the
+    moment you're at, post a reply to a comment, and like a comment. Each one happens
+    <b>only when you click a send or like button</b>. Nothing is posted on a timer, on
+    page load, during playback, or as a side effect of anything else, and nothing can
+    be posted at all while you are signed out.
+  </p>
+  <p>
+    When you do press send, the text you typed goes to YouTube — the same place it
+    would go if you had typed it into YouTube's own comment box, and it appears
+    publicly under your own account exactly as it would have. It is not copied
+    anywhere else, and the developer never receives it. Scrubber never edits or
+    deletes anything, and never posts anywhere other than the video you are watching.
   </p>
 
   <h2>Where it runs</h2>

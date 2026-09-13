@@ -12,9 +12,10 @@ YouTube viewers have been hand-typing timestamps into comments for over a decade
 and YouTube auto-links them. Scrubber reads those timestamps off the page, draws
 them as density marks over the progress bar, and surfaces good ones as you watch.
 
-Asks YouTube for comments **exactly the way the page itself does** — same origin, same
-session already in your browser, no third party and no server of ours. Stores nothing
-but your own settings.
+Talks to YouTube **exactly the way the page itself does** — same origin, same session
+already in your browser, no third party and no server of ours. Reads comments that way,
+and posts your own the same way, only ever from an explicit click. Stores nothing but
+your own settings.
 
 | | Chrome / Edge / Brave | Safari macOS | Safari iOS / iPadOS |
 |---|---|---|---|
@@ -421,6 +422,17 @@ they're the beachhead.
   and a window that did not contain 0:54. Opening the writer rebuilds the panel for the
   moment under the cursor first, even when that leaves it empty. Empty is the honest
   answer there.
+- **Two passes that measure differently will eventually disagree, and the gap between
+  them is a bug.** Rows were fitted by arithmetic — a line height, a header height, a gap
+  — and then checked geometrically, and the difference between the estimate and the truth
+  was a row rendered where nobody could see it. There is one basis now: where the last row
+  actually ends. Every row starts at one line, any row there is no room for is removed,
+  and the spare lines are handed out one at a time and taken back the moment they do not
+  fit. Nothing is assumed about how tall anything is.
+- **Trimming the panel changed the panel's size, and the rebuild key watched its size.**
+  So a trim triggered a rebuild, which re-fitted the rows against the trimmed box, which
+  trimmed it again: a comment lost on every mouse movement until one was left. The key
+  watches the size the geometry asks for, not the size the panel ended up at.
 - **A box half empty under its own content looks like something failed to load.** The
   panel borrows the preview's height, which is generous for three short comments. After
   the rows are fitted, whatever slack is left under them is given back and the panel
@@ -815,9 +827,28 @@ they're the beachhead.
   YouTube app. An extension cannot touch the native app, so iOS reach is inherently
   much smaller than the effort suggests.
 
+## Writing, not just reading
+
+Phase 2 — your own marks — is in. Scrubber can do three things as the signed-in user,
+all through YouTube's own endpoints on youtube.com:
+
+| | Source |
+|---|---|
+| Post a comment stamped with the current moment | `create()` in `src/innertube.js` |
+| Reply to a comment | `reply()` |
+| Like a comment | `like()` |
+
+It posts through YouTube normally, so the timestamp auto-links for everyone whether or
+not they have Scrubber. There is still no backend — `ORIGIN` is `location.origin`, and
+there is exactly one `fetch()` in the extension.
+
+**The invariant that matters:** every write fires only from an explicit click on a send
+or like button. Never on a timer, never on page load, never during playback, never as a
+side effect of anything else, and never at all while signed out — each write path
+returns `not signed in` without an auth header. Keep it that way; it is the whole
+answer to the only hard question a store reviewer asks, and `store/permissions.md` is
+written on the assumption that it holds.
+
 ## Not built yet
 
-Phase 2 is your own marks: hook YouTube's comment box, append the timestamp so the
-comment posts normally and auto-links for everyone, and mirror it to a backend. Plus
-one-keypress emoji marks, which is where density actually comes from. Don't start it
-until this version proves people keep it switched on.
+One-keypress emoji marks, which is where density actually comes from.

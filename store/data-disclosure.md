@@ -29,6 +29,24 @@ therefore not collected.
 Settings are the user's own configuration, not user data, and live in the extension's
 own `storage` area.
 
+### The write feature does not change these answers
+
+Scrubber can post a comment, post a reply, and like a comment as the signed-in user.
+That is not "collecting user data", for two reasons a reviewer will accept:
+
+- **The developer receives nothing.** There is no developer server. The comment goes
+  from the user's browser to YouTube, on youtube.com, over the user's own session.
+- **The user initiates every one of them.** Each write fires only from a click on a
+  send or like button, never automatically, and never while signed out.
+
+A public YouTube comment is also not a "personal communication" in the sense that
+category means (email, SMS, chat). Leave it unticked.
+
+What you must *not* do is stay quiet about the capability. It belongs in the single
+purpose, the host permission justification, the listing description and the privacy
+policy — all four are written for it in `permissions.md` and `listing.md`. Undisclosed
+posting on a user's behalf is a takedown reason even when the data answers are correct.
+
 ## The three certification checkboxes
 
 All three are true and must be ticked:
