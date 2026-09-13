@@ -5,8 +5,7 @@
 ### SLOP
 
 **This is a vibe-coded slop project.** Want something fixed? Spin up your Claude Code
-and raise a PR — that is genuinely the intended contribution path, not a joke at your
-expense.
+and raise a PR.
 
 <br clear="left">
 
