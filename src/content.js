@@ -71,6 +71,14 @@
   const TAG_MIN = 15;
   const END_GAP = 4;
   const TOP_SLOTS = 7;
+  // The run of the video's own best comments at the end, and how many of them.
+  // A comment within a quarter of the leader's likes is in the same league.
+  const END_RUN = 100;
+  const END_TAIL = 0.07;
+  const END_TAIL_MAX = 240;
+  const END_TOPS_MIN = 5;
+  const END_TOPS_MAX = 10;
+  const END_LEAGUE = 4;
   const SVG_NS = 'http://www.w3.org/2000/svg';
 
   const likeTargets = new WeakMap();
@@ -937,74 +945,6 @@
   // The panel is a fixed size borrowed from the preview, so leftover vertical
   // space is wasted unless it is handed back to the text. Everyone gets one
   // line, then spare lines go round-robin to whoever is still cut off.
-  // Fits as many comments into the panel as it can hold, and says how many that
-  // was. Returns the number kept, which is also what the footer's count is
-  // measured against — a row that was rendered but cannot be seen is not shown.
-  function fitRows(rowsEl, list) {
-    let entries = list;
-    if (!entries.length) return 0;
-    const lh = parseFloat(getComputedStyle(entries[0].c).lineHeight) || 17;
-    // Each row spends a band on the name and the time before a word of the
-    // comment is drawn, and the fitting has to pay for it or the last row is
-    // rendered where it cannot be seen.
-    const head = (entries[0].head && entries[0].head.clientHeight) || HEAD_H;
-
-    const want = entries.map((e) => {
-      e.c.style.setProperty('-webkit-line-clamp', '99');
-      return Math.max(1, Math.round(e.c.scrollHeight / lh));
-    });
-
-    // If the panel can't be measured, fall back to the stylesheet's two lines
-    // rather than giving up: giving up left every row unclamped and, worse,
-    // unflagged, so a truncated comment was not clickable.
-    const avail = rowsEl.clientHeight;
-
-    // Every row needs a line of its own. The ones there is no line for were
-    // being rendered into the overflow, where they were invisible but still
-    // counted — so the panel claimed four comments and showed three.
-    if (avail) {
-      let keep = entries.length;
-      while (keep > 1 && keep * (lh + head) + (keep - 1) * ROW_GAP > avail) keep--;
-      if (keep < entries.length) {
-        for (const e of entries.slice(keep)) e.row.remove();
-        entries = entries.slice(0, keep);
-        want.length = keep;
-      }
-    }
-
-    const gaps = (entries.length - 1) * ROW_GAP + entries.length * head;
-    const lines = avail ? Math.floor((avail - gaps) / lh) : entries.length * 2;
-    let budget = Math.max(entries.length, lines) - entries.length;
-    const give = entries.map(() => 1);
-    let moved = true;
-    while (budget > 0 && moved) {
-      moved = false;
-      for (let i = 0; i < entries.length && budget > 0; i++) {
-        if (give[i] < want[i]) { give[i]++; budget--; moved = true; }
-      }
-    }
-
-    entries.forEach((e, i) => {
-      e.c.style.setProperty('-webkit-line-clamp', String(give[i]));
-      if (give[i] < want[i]) e.row.classList.add('is-clipped');
-    });
-
-    // Arithmetic gets it nearly right; the last row was still coming out sliced
-    // in half at the bottom edge. Measure what was actually drawn and drop
-    // whatever hangs over — a half-drawn comment is worse than one fewer.
-    const box = rowsEl.getBoundingClientRect();
-    if (box.height) {
-      for (let i = entries.length - 1; i > 0; i--) {
-        const r = entries[i].row.getBoundingClientRect();
-        if (r.height && r.bottom > box.bottom + 1) {
-          entries[i].row.remove();
-          entries.splice(i, 1);
-        }
-      }
-    }
-    return entries.length;
-  }
-
   function renderTipList(tip, near, all) {
     // Scrubbing changes this list constantly. Swapping the text in place made it
     // flicker, so the outgoing rows are left behind for a moment, fading out
@@ -1098,6 +1038,73 @@
       foot.appendChild(total);
       if (!all) foot.classList.add('is-more');
     }
+  }
+
+
+  // Fits as many comments into the panel as it can hold, and says how many that
+  // was — measured, not estimated. Two passes used to disagree: an arithmetic
+  // one that assumed a row's height from its line height and a geometric one
+  // that checked where rows actually landed, and the gap between them was a row
+  // rendered where nobody could see it. There is one basis now, and it is the
+  // only one that is ever true: where the last row ends.
+  function fitRows(rowsEl, list) {
+    let entries = list;
+    if (!entries.length) return 0;
+    const box = rowsEl.getBoundingClientRect();
+    const lh = parseFloat(getComputedStyle(entries[0].c).lineHeight) || 17;
+
+    // What each comment would need to be read in full.
+    const want = entries.map((e) => {
+      e.c.style.setProperty('-webkit-line-clamp', '99');
+      return Math.max(1, Math.round(e.c.scrollHeight / lh));
+    });
+
+    // If the panel cannot be measured, fall back to the stylesheet's two lines
+    // rather than giving up: giving up left every row unclamped and, worse,
+    // unflagged, so a truncated comment was not clickable.
+    if (!box.height) {
+      entries.forEach((e, i) => {
+        e.c.style.setProperty('-webkit-line-clamp', '2');
+        if (want[i] > 2) e.row.classList.add('is-clipped');
+      });
+      return entries.length;
+    }
+
+    const fits = () => {
+      const last = entries[entries.length - 1];
+      const r = last.row.getBoundingClientRect();
+      return !r.height || r.bottom <= box.bottom + 1;
+    };
+
+    // Everyone gets a line; anyone there is no line for is removed rather than
+    // rendered into the overflow, where they were invisible but still counted.
+    entries.forEach((e) => e.c.style.setProperty('-webkit-line-clamp', '1'));
+    while (entries.length > 1 && !fits()) {
+      entries[entries.length - 1].row.remove();
+      entries = entries.slice(0, -1);
+      want.length = entries.length;
+    }
+
+    // Then the spare room is handed out a line at a time, round-robin, to
+    // whoever is still cut off — and taken back the moment it does not fit.
+    const give = entries.map(() => 1);
+    let moved = true;
+    while (moved) {
+      moved = false;
+      for (let i = 0; i < entries.length; i++) {
+        if (give[i] >= want[i]) continue;
+        give[i]++;
+        entries[i].c.style.setProperty('-webkit-line-clamp', String(give[i]));
+        if (fits()) { moved = true; continue; }
+        give[i]--;
+        entries[i].c.style.setProperty('-webkit-line-clamp', String(give[i]));
+      }
+    }
+
+    entries.forEach((e, i) => {
+      if (give[i] < want[i]) e.row.classList.add('is-clipped');
+    });
+    return entries.length;
   }
 
   // The panel borrows the preview's height, which is generous for three short
@@ -1651,6 +1658,12 @@
     tip.style.top = Math.round(top) + 'px';
     tip.style.bottom = 'auto';
     S.tipBox = { top: Math.round(top), height: Math.round(h), player: pr.height };
+    // The size this geometry asks for, before any slack is given back. The
+    // rebuild key is measured against this rather than against what the panel
+    // ended up at: trimming changes the height, and a key that watched the
+    // height re-fitted the rows against the trimmed box, which trimmed it
+    // again — a loop that ate a row on every mouse move until one was left.
+    S.tipPlaced = Math.round(h) + 'x' + Math.round(w);
     writeButton(player);
   }
 
@@ -1678,7 +1691,7 @@
     // nothing to divide up.
     tip.classList.add('on');
     // Rebuilding on every mousemove would re-run the line fitting each frame.
-    const key = near.map((m) => m.t + ':' + m.likes).join('|') + '@' + tip.style.height + tip.style.width;
+    const key = near.map((m) => m.t + ':' + m.likes).join('|') + '@' + (S.tipPlaced || '');
     if (key !== S.tipKey) {
       S.tipKey = key;
       S.tipNear = near;
@@ -1851,29 +1864,74 @@
     const dur = S.duration;
     const gap = Math.max(1, cfg.cooldown);
     const best = S.top.slice().sort((a, b) => b.likes - a.likes);
+    const made = [];
+    const mark = (c, t) => ({
+      t,
+      text: c.body,
+      author: c.author,
+      likes: c.likes,
+      n: 0,
+      replies: c.replyToken,
+      like: c.like || null,
+      replyTo: c.replyTo || null,
+      replyN: c.replyN || 0,
+      who: c.who || null,
+      top: true,
+    });
 
-    const slots = [];
-    for (let i = 0; i < TOP_SLOTS && slots.length < best.length; i++) {
+    // The closing stretch is where the comments section itself belongs: the ones
+    // anyone who scrolled down would have read first, in the order they would
+    // have read them. How many depends on the video — a handful of comments in a
+    // league of their own is a different thing from a flat tail, and the ones in
+    // that league all deserve to be seen.
+    const lead = best[0] ? best[0].likes : 0;
+    let n = 0;
+    while (n < best.length && n < END_TOPS_MAX &&
+      (n < END_TOPS_MIN || best[n].likes * END_LEAGUE >= lead)) n++;
+    // Never the whole shelf: whatever is not in the closing run is what fills
+    // the empty stretches earlier on, and a video with four of these should not
+    // spend all four in its last minute.
+    n = Math.min(n, best.length, Math.max(1, Math.ceil(best.length / 2)));
+
+    if (n > 0) {
+      // Not against the very end — nobody wants the best comments arriving over
+      // the outro or after the video has moved on. The run finishes a short way
+      // short of it, a fraction of the video's own length, so a long video gets
+      // a proportional run-out rather than the same four seconds a short one has.
+      const tail = clamp(dur * END_TAIL, END_GAP, END_TAIL_MAX);
+      const run = Math.min(dur * 0.2, END_RUN);
+      const last = Math.max(END_GAP, dur - tail);
+      const first = Math.max(END_GAP, last - run);
+      const step = n > 1 ? (last - first) / (n - 1) : 0;
+      const apart = Math.max(5, step * 0.6);
+      const grain = Math.max(1, (last - first) / 40);
+      const slots = [];
+      // Evenly through the closing run, but never on top of a comment that is
+      // about something happening right there — that moment is spoken for.
+      for (let t = first; t <= last + 0.01 && slots.length < n; t += grain) {
+        if (timed.some((m) => Math.abs(m.t - t) < gap)) continue;
+        if (slots.length && t - slots[slots.length - 1] < apart) continue;
+        slots.push(t);
+      }
+      slots.forEach((t, i) => made.push(mark(best[i], t)));
+    }
+
+    // Everything else fills the stretches the timed comments leave empty — on a
+    // video whose timestamps all cluster in one place that is most of it, and on
+    // a well-covered one it is none.
+    const rest = best.slice(n);
+    const taken = made.map((m) => m.t);
+    let k = 0;
+    for (let i = 0; i < TOP_SLOTS && k < rest.length; i++) {
       const t = dur * ((i + 0.5) / TOP_SLOTS);
       if (t < END_GAP || t > dur - 2) continue;
       if (timed.some((m) => Math.abs(m.t - t) < gap)) continue;
-      if (slots.some((s) => Math.abs(s - t) < gap)) continue;
-      slots.push(t);
+      if (taken.some((s) => Math.abs(s - t) < gap)) continue;
+      taken.push(t);
+      made.push(mark(rest[k++], t));
     }
 
-    return slots.map((t, i) => ({
-      t,
-      text: best[i].body,
-      author: best[i].author,
-      likes: best[i].likes,
-      n: 0,
-      replies: best[i].replyToken,
-      like: best[i].like || null,
-      replyTo: best[i].replyTo || null,
-      replyN: best[i].replyN || 0,
-      who: best[i].who || null,
-      top: true,
-    }));
+    return made;
   }
 
   function schedule() {
@@ -2672,6 +2730,7 @@
       tipOpen: null,
       tipAll: false,
       tipWrite: false,
+      tipPlaced: '',
       openH: 0,
       deepening: false,
       sweepTimer: null,

@@ -9,7 +9,7 @@ const DEFAULTS = {
 };
 
 const TOGGLES = ['enabled', 'showPopout'];
-const NUMBERS = ['minLikes', 'cooldown', 'windowSec'];
+const NUMBERS = ['minLikes', 'cooldown'];
 const CACHE_KEY = 'scrubber:comments';
 
 const el = (id) => document.getElementById(id);
@@ -29,10 +29,16 @@ async function send(msg) {
 // sweep runs, so it is re-read rather than shown once.
 function paintStats(stats) {
   const on = !!(stats && stats.onWatch);
-  el('count').textContent = on ? String(stats.comments) : '—';
-  el('countText').textContent = on
-    ? (stats.comments === 1 ? 'timestamped comment here' : 'timestamped comments here')
-    : 'no video open';
+  const count = el('count');
+  count.textContent = '';
+  if (on) {
+    const n = document.createElement('b');
+    n.textContent = String(stats.comments);
+    count.append(n, document.createTextNode(
+      stats.comments === 1 ? ' timed comment' : ' timed comments'));
+  } else {
+    count.textContent = 'no video open';
+  }
   el('loadMore').disabled = !on;
 }
 
@@ -62,6 +68,23 @@ async function init() {
     });
   }
   paintSub();
+
+  // How wide a stretch a hover gathers comments from. Zero means the extension
+  // scales it with the video's length, which is the right answer often enough to
+  // be the default.
+  const win = el('windowSec');
+  const paintWin = () => {
+    const v = Number(win.value) || 0;
+    el('windowVal').textContent = v ? v + 's' : 'Auto';
+  };
+  win.value = cfg.windowSec || 0;
+  paintWin();
+  win.addEventListener('input', paintWin);
+  win.addEventListener('change', () => {
+    const v = Math.max(0, parseInt(win.value, 10) || 0);
+    ScrubberApi.set({ windowSec: v });
+    send({ type: 'scrubber:config', cfg: { windowSec: v } });
+  });
 
   el('loadMore').addEventListener('click', async () => {
     const btn = el('loadMore');

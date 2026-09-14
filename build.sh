@@ -17,6 +17,8 @@ PROJECT="$(dirname "$ROOT")/scrubber-safari"
 XCODEPROJ="$PROJECT/Scrubber/Scrubber.xcodeproj"
 APP_NAME="Scrubber"
 BUNDLE_ID="dev.myndar.scrubber"
+# The appex is what Safari lists; the app is only its container.
+EXT_ID="$BUNDLE_ID.Extension"
 INSTALL_DIR="/Applications"
 
 # Single source of truth for the version: manifest.json. Both the zip name and
@@ -246,11 +248,29 @@ case "${1:-chrome}" in
     #
     # Point the registration at the copy that is actually meant to be permanent.
     pluginkit -r "$BUILT/Contents/PlugIns/$APP_NAME Extension.appex" 2>/dev/null || true
-    pluginkit -a "$INSTALL_DIR/$APP_NAME.app/Contents/PlugIns/$APP_NAME Extension.appex"
+    APPEX="$INSTALL_DIR/$APP_NAME.app/Contents/PlugIns/$APP_NAME Extension.appex"
+    pluginkit -a "$APPEX"
+
+    # And check that it took. Replacing the app bundle can leave pluginkit's
+    # record pointing at a path that no longer exists, in which case the add is
+    # accepted and the extension still does not appear in Safari; launching the
+    # container app once is what makes the registration stick. Silence here was
+    # the whole problem — the extension simply vanished from Safari's list with
+    # nothing to say why.
+    if ! pluginkit -m -p com.apple.Safari.web-extension 2>/dev/null | grep -q "$EXT_ID"; then
+      open -gj "$INSTALL_DIR/$APP_NAME.app" 2>/dev/null || true
+      sleep 2
+      pluginkit -a "$APPEX" 2>/dev/null || true
+    fi
+    if pluginkit -m -p com.apple.Safari.web-extension 2>/dev/null | grep -q "$EXT_ID"; then
+      echo "registered with Safari -> $EXT_ID"
+    else
+      echo "WARNING: Safari does not list $EXT_ID yet." >&2
+      echo "  Open $INSTALL_DIR/$APP_NAME.app once, then check Safari > Settings > Extensions." >&2
+    fi
 
     echo
     echo "installed -> $INSTALL_DIR/$APP_NAME.app"
-    echo "registered -> $(pluginkit -mAv 2>/dev/null | grep -i "$APP_NAME Extension.appex" | head -1 | sed 's|.*\t||')"
     find "$INSTALL_DIR/$APP_NAME.app/Contents/PlugIns/$APP_NAME Extension.appex/Contents/Resources" \
       -type f 2>/dev/null | sed "s|.*Resources/|  appex: |"
     ;;
