@@ -1,8 +1,10 @@
+
+[![VIBE CODED](https://img.shields.io/badge/VIBE-CODED-ff6f9c?style=for-the-badge&labelColor=17181c)](https://github.com/alex-mind/scrubber)
+
 # Scrubber
 
 <img src="art/slop-sign.png" width="118" align="left" hspace="18" vspace="4" alt="SLOP">
 
-[![VIBE CODED](https://img.shields.io/badge/VIBE-CODED-ff6f9c?style=for-the-badge&labelColor=17181c)](https://github.com/alex-mind/scrubber)
 
 Comments pinned to the moment they're about.
 
