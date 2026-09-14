@@ -314,6 +314,7 @@
 </section>
 
 <footer>
+  <a href="https://chromewebstore.google.com/detail/scrubber/jhhcdmdpkdlkdpklaogdbknnciapcfah">Chrome Web Store</a>
   <a href="https://github.com/alex-mind/scrubber">Source</a>
   <a href="privacy.html">Privacy</a>
   <a href="https://github.com/alex-mind/scrubber/issues">Report a problem</a>
@@ -328,12 +329,12 @@
   "use strict";
 
   /* ---------------------------------------------------------------------
-     Store URLs. Both are null until the listing exists — a store URL cannot
-     be known before the first draft upload assigns an item ID. While null,
-     the button points at the GitHub release and says so.
+     Store URLs. Null until the listing exists — a store URL cannot be known
+     before the first draft upload assigns an item ID. While null, the button
+     points at the GitHub release and says so.
      --------------------------------------------------------------------- */
   var STORES = {
-    chrome: null,  // 'https://chromewebstore.google.com/detail/scrubber/<ITEM_ID>'
+    chrome: 'https://chromewebstore.google.com/detail/scrubber/jhhcdmdpkdlkdpklaogdbknnciapcfah',
     edge:   null   // 'https://microsoftedge.microsoft.com/addons/detail/<ITEM_ID>'
   };
   var RELEASE = 'https://github.com/alex-mind/scrubber/releases/latest';
@@ -357,6 +358,8 @@
   var NAMES = { chrome:'Chrome', edge:'Edge', safari:'Safari', firefox:'Firefox' };
 
   if (b === 'safari' || b === 'firefox') {
+    // Neither can install from the Chrome Web Store, so the store link would be
+    // a dead end here; the zip and the steps below are the only route.
     label.textContent = 'Download for Chrome or Edge';
     btn.href = RELEASE;
     // No note here: the collapsible below covers these browsers by name, and the
@@ -369,7 +372,7 @@
   } else {
     label.textContent = 'Download the extension';
     btn.href = RELEASE;
-    note.innerHTML = 'Store listing is in review — for now it installs from the zip in '
+    note.innerHTML = 'Not in this browser\'s store yet — for now it installs from the zip in '
                    + '<a href="#" onclick="document.querySelector(\'details\').open=true;'
                    + 'document.querySelector(\'details\').scrollIntoView({behavior:\'smooth\'});'
                    + 'return false;">a few steps</a>.';

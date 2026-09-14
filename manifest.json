@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "Scrubber",
-  "version": "1.0.0",
+  "name": "Scrubber: YouTube Comment Timestamps",
+  "version": "1.0.1",
   "homepage_url": "https://alex-mind.github.io/scrubber/",
-  "description": "Pins YouTube comments to the moment they're about: density marks on the progress bar, and the good ones surface as you watch.",
+  "description": "YouTube timestamp comments, on the video's progress bar. See what people said about each moment, and say something yourself.",
   "permissions": [
     "storage"
   ],

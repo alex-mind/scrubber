@@ -7,17 +7,23 @@ fields under slightly different names; where they differ it's noted.
 
 ## Name
 
+Both stores take the name from `manifest.json`, not from the dashboard — editing it
+here alone changes nothing. It is also the field their search weighs most heavily, so
+it carries the words people actually type: *YouTube*, *comment*, *timestamps*. The
+brand stays in front because that is what the site and the README call it.
+
 ```
-Scrubber
+Scrubber: YouTube Comment Timestamps
 ```
 
 ## Short description  (CWS limit 132 · Edge calls it "Short description", limit 132)
 
-125 characters — identical to `manifest.json`'s `description`, which is what both
-stores prefill from. Keep the two in sync.
+124 characters — identical to `manifest.json`'s `description`, which is what both
+stores prefill from. Keep the two in sync. Search matches on this too, so it leads
+with what the thing is rather than with a metaphor.
 
 ```
-Pins YouTube comments to the moment they're about: density marks on the progress bar, and the good ones surface as you watch.
+YouTube timestamp comments, on the video's progress bar. See what people said about each moment, and say something yourself.
 ```
 
 ## Category
@@ -33,8 +39,14 @@ English (United States)
 
 ## Detailed description
 
+The store prints the short description immediately above this field, so an opening
+line that restates it appears twice on the listing page, one paragraph under the
+other. This one does not repeat it.
+
 ```
-Viewers have been hand-typing timestamps into YouTube comments for over a decade. "3:42 is the part that finally made it click." "Skip to 12:05." YouTube turns those into links, then buries them under a thousand other comments where nobody scrolling will ever find them at the moment they'd matter.
+Someone has already written the note you need about this video. It is four hundred comments down, it says "skip to 12:05", and you will never see it at the moment it would have helped.
+
+Viewers have been hand-typing timestamps into YouTube comments for over a decade. "3:42 is the part that finally made it click." "Wait for 18:20." YouTube turns those into links and then buries them, so the one comment that was about this second of the video is unreachable from this second of the video.
 
 Scrubber reads those timestamps off the page and puts them back where they belong — on the progress bar.
 
@@ -77,6 +89,15 @@ Desktop YouTube only for now.
 
 ---
 
+## Item URL  (assigned on the first upload)
+
+```
+https://chromewebstore.google.com/detail/scrubber/jhhcdmdpkdlkdpklaogdbknnciapcfah
+```
+
+Wired into `docs/index.html` as `STORES.chrome`, which is what turns the site's
+button into "Add to Chrome".
+
 ## Website / homepage URL
 
 ```
@@ -96,6 +117,25 @@ https://alex-mind.github.io/scrubber/privacy.html
 ```
 
 ---
+
+## Being found in store search
+
+Published is not the same as findable. Measured on the live storefront the day after
+publishing: the listing answers to `scrubber youtube comments`, and does not appear
+for `scrubber` or `youtube comments timestamp`. Both stores rank on installs, ratings
+and recency as much as on text, and a new item with neither has to win on text alone.
+
+What that means for these fields:
+
+- **The name carries the query.** `Scrubber` alone competes with every audio and video
+  scrubber there is. `Scrubber: YouTube Comment Timestamps` answers the searches people
+  actually run.
+- **The short description is indexed, the detailed one much less so.** Say what it is
+  in the first clause, not what it is like.
+- **Nothing else is a lever.** There are no keyword fields in either dashboard; the
+  category and the screenshots do not feed search.
+- **Each of these needs a new upload**, because the name and the short description come
+  from the manifest. Bump `version` in `manifest.json` or the upload is rejected.
 
 ## Assets
 
