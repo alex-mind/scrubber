@@ -173,15 +173,17 @@
   </p>
 
   <div class="cta">
-    <a class="btn" id="install" href="https://github.com/alex-mind/scrubber/releases/latest">
+    <a class="btn"
+       href="https://chromewebstore.google.com/detail/scrubber/jhhcdmdpkdlkdpklaogdbknnciapcfah">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
         <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
       </svg>
-      <span id="install-label">Get Scrubber</span>
+      <span>Get Scrubber</span>
     </a>
-    <small id="install-note">Free and open source. Works on desktop YouTube.</small>
+    <small>Free and open source. Two clicks in Chrome, Edge, Brave,
+      Arc and Opera; Safari and Firefox install by hand, below.</small>
   </div>
 
   <details class="manual">
@@ -327,56 +329,6 @@
 <script>
 (function(){
   "use strict";
-
-  /* ---------------------------------------------------------------------
-     Store URLs. Null until the listing exists — a store URL cannot be known
-     before the first draft upload assigns an item ID. While null, the button
-     points at the GitHub release and says so.
-     --------------------------------------------------------------------- */
-  var STORES = {
-    chrome: 'https://chromewebstore.google.com/detail/scrubber/jhhcdmdpkdlkdpklaogdbknnciapcfah',
-    edge:   null   // 'https://microsoftedge.microsoft.com/addons/detail/<ITEM_ID>'
-  };
-  var RELEASE = 'https://github.com/alex-mind/scrubber/releases/latest';
-
-  function browser(){
-    var ua = navigator.userAgent;
-    if (/Edg\//.test(ua))                      return 'edge';
-    if (/Firefox\//.test(ua))                  return 'firefox';
-    // Chrome's UA is a superset of Safari's, so Chrome has to be ruled out first.
-    if (/Chrome\//.test(ua) && !/OPR\//.test(ua)) return 'chrome';
-    if (/OPR\//.test(ua))                      return 'chrome';  // Opera installs from the CWS
-    if (/Safari\//.test(ua))                   return 'safari';
-    return 'other';
-  }
-
-  var btn   = document.getElementById('install');
-  var label = document.getElementById('install-label');
-  var note  = document.getElementById('install-note');
-  var b     = browser();
-
-  var NAMES = { chrome:'Chrome', edge:'Edge', safari:'Safari', firefox:'Firefox' };
-
-  if (b === 'safari' || b === 'firefox') {
-    // Neither can install from the Chrome Web Store, so the store link would be
-    // a dead end here; the zip and the steps below are the only route.
-    label.textContent = 'Download for Chrome or Edge';
-    btn.href = RELEASE;
-    // No note here: the collapsible below covers these browsers by name, and the
-    // support table says the rest. An empty <small> would just leave a gap.
-    note.hidden = true;
-  } else if (STORES[b]) {
-    label.textContent = 'Add to ' + NAMES[b];
-    btn.href = STORES[b];
-    note.textContent = 'Free and open source. Two clicks: this button, then Add extension.';
-  } else {
-    label.textContent = 'Download the extension';
-    btn.href = RELEASE;
-    note.innerHTML = 'Not in this browser\'s store yet — for now it installs from the zip in '
-                   + '<a href="#" onclick="document.querySelector(\'details\').open=true;'
-                   + 'document.querySelector(\'details\').scrollIntoView({behavior:\'smooth\'});'
-                   + 'return false;">a few steps</a>.';
-  }
 
   /* ---------------------------------------------------------------------
      The demo. A real density profile — clustered, not evenly spread, because
